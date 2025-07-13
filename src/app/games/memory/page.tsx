@@ -83,7 +83,7 @@ export default function MemoryGame() {
         nextLevel();
       }, 1500);
     }
-  }, [gameState, userSequence, sequence, score, level, nextLevel]);
+  }, [gameState, userSequence, sequence, score, level, nextLevel, saveScore]);
 
   // キーボード入力対応
   useEffect(() => {

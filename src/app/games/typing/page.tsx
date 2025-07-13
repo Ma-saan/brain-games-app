@@ -13,19 +13,19 @@ export default function TypingGame() {
   const [totalChars, setTotalChars] = useState(0);
   const [correctChars, setCorrectChars] = useState(0);
 
-  const words = [
-    'apple', 'banana', 'orange', 'grape', 'lemon',
-    'computer', 'keyboard', 'mouse', 'screen', 'window',
-    'programming', 'javascript', 'react', 'next', 'typescript',
-    'hello', 'world', 'game', 'typing', 'speed',
-    'quick', 'brown', 'fox', 'jumps', 'over',
-    'lazy', 'dog', 'pack', 'quiz', 'five',
-    'amazing', 'wonderful', 'fantastic', 'brilliant', 'excellent'
-  ];
 
   const getRandomWord = useCallback(() => {
+    const words = [
+      'apple', 'banana', 'orange', 'grape', 'lemon',
+      'computer', 'keyboard', 'mouse', 'screen', 'window',
+      'programming', 'javascript', 'react', 'next', 'typescript',
+      'hello', 'world', 'game', 'typing', 'speed',
+      'quick', 'brown', 'fox', 'jumps', 'over',
+      'lazy', 'dog', 'pack', 'quiz', 'five',
+      'amazing', 'wonderful', 'fantastic', 'brilliant', 'excellent'
+    ];
     return words[Math.floor(Math.random() * words.length)];
-  }, [words]);
+  }, []);
 
   const startGame = useCallback(() => {
     setGameState('playing');
@@ -52,15 +52,6 @@ export default function TypingGame() {
       // 次の単語
       setUserInput('');
       setCurrentWord(getRandomWord());
-    } else if (value.length <= currentWord.length) {
-      // 入力途中の文字チェック
-      let correct = 0;
-      for (let i = 0; i < value.length; i++) {
-        if (value[i] === currentWord[i]) {
-          correct++;
-        }
-      }
-      // リアルタイムでの正確性は表示のみ
     }
   }, [currentWord, score, completedWords, correctChars, totalChars, getRandomWord]);
 

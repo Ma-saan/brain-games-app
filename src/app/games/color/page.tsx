@@ -11,18 +11,18 @@ export default function ColorGame() {
   const [currentColor, setCurrentColor] = useState('');
   const [isCorrect, setIsCorrect] = useState(false);
 
-  const words = ['赤', '青', '緑', '黄', '紫', '黒'];
-  const colors = ['text-red-500', 'text-blue-500', 'text-green-500', 'text-yellow-500', 'text-purple-500', 'text-black'];
-  const colorNames = ['赤', '青', '緑', '黄', '紫', '黒'];
 
   const generateQuestion = useCallback(() => {
+    const words = ['赤', '青', '緑', '黄', '紫', '黒'];
+    const colors = ['text-red-500', 'text-blue-500', 'text-green-500', 'text-yellow-500', 'text-purple-500', 'text-black'];
+    
     const wordIndex = Math.floor(Math.random() * words.length);
     const colorIndex = Math.floor(Math.random() * colors.length);
     
     setCurrentWord(words[wordIndex]);
     setCurrentColor(colors[colorIndex]);
     setIsCorrect(wordIndex === colorIndex);
-  }, [words, colors]);
+  }, []);
 
   const startGame = useCallback(() => {
     setGameState('playing');
