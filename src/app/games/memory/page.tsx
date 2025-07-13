@@ -68,7 +68,7 @@ export default function MemoryGame() {
       setGameState('finished');
       setStatusMessage(`間違いです！正解は: ${sequence.join(', ')}`);
       // スコア保存
-      saveScore('memory', score);
+      saveScore('memory', score).catch(console.error);
       return;
     }
 
