@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🧠 脳トレミニゲーム集
 
-## Getting Started
+6種類の脳トレーニングゲームが楽しめるNext.jsアプリケーションです。
 
-First, run the development server:
+## 🎮 ゲーム一覧
+
+- **⚡ リアクションテスト** - 画面が緑になったら即座にクリック！
+- **🧠 記憶ゲーム** - 光った数字の順番を覚えてクリック
+- **🎨 色判別** - 文字の色と内容が一致するかを判断
+- **🔢 計算ゲーム** - 制限時間内に計算問題を解答
+- **🔍 パターン認識** - 数列の規則性を見つけて次の数字を推測
+- **⌨️ タイピング** - 英単語を素早く正確にタイピング
+
+## ✨ 機能
+
+- 👤 **ユーザー管理** - 複数ユーザーでスコアを記録
+- 📊 **スコア履歴** - 各ゲームのベストスコアを保存
+- 📱 **レスポンシブ対応** - PC・スマートフォン両対応
+- 💾 **データ永続化** - LocalStorageでデータ保存
+- 🎯 **ゲーム説明** - 各ゲームの遊び方を表示
+
+## 🚀 開発環境構築
 
 ```bash
+# 依存関係のインストール
+npm install
+
+# 開発サーバー起動
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+[http://localhost:3000](http://localhost:3000) でアプリケーションが起動します。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🛠 技術スタック
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **フレームワーク**: Next.js 15
+- **言語**: TypeScript
+- **スタイリング**: Tailwind CSS
+- **状態管理**: React Context
+- **データ保存**: LocalStorage
 
-## Learn More
+## 📁 プロジェクト構造
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+├── app/
+│   ├── context/         # React Context (ユーザー・スコア管理)
+│   ├── games/          # 各ゲームページ
+│   │   ├── reaction/   # リアクションテスト
+│   │   ├── memory/     # 記憶ゲーム
+│   │   ├── color/      # 色判別ゲーム
+│   │   ├── math/       # 計算ゲーム
+│   │   ├── pattern/    # パターン認識ゲーム
+│   │   └── typing/     # タイピングゲーム
+│   ├── history/        # スコア履歴ページ
+│   ├── layout.tsx      # レイアウト
+│   └── page.tsx        # メインページ
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🎯 今後の改善点
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- [ ] 他のゲームへのスコア保存機能追加
+- [ ] オンラインランキング機能
+- [ ] 難易度設定
+- [ ] 音響効果の追加
+- [ ] アニメーション強化
 
-## Deploy on Vercel
+## 📄 ライセンス
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+MIT License
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
