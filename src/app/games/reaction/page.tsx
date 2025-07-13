@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useGame } from '../../context/GameContext';
 
 export default function ReactionGame() {
   const [gameState, setGameState] = useState<'waiting' | 'ready' | 'go' | 'clicked' | 'too-early'>('waiting');
   const [reactionTime, setReactionTime] = useState<number | null>(null);
   const [startTime, setStartTime] = useState<number>(0);
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
+  const { saveScore } = useGame();
 
   const startGame = useCallback(() => {
     setGameState('ready');
@@ -33,6 +35,8 @@ export default function ReactionGame() {
       const reaction = Date.now() - startTime;
       setReactionTime(reaction);
       setGameState('clicked');
+      // スコア保存
+      saveScore('reaction', reaction).catch(console.error);
     }
   }, [gameState, startTime, timeoutId]);
 

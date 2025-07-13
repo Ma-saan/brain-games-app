@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useGame } from '../../context/GameContext';
 
 export default function ColorGame() {
   const [gameState, setGameState] = useState<'waiting' | 'playing' | 'finished'>('waiting');
@@ -10,6 +11,7 @@ export default function ColorGame() {
   const [currentWord, setCurrentWord] = useState('');
   const [currentColor, setCurrentColor] = useState('');
   const [isCorrect, setIsCorrect] = useState(false);
+  const { saveScore } = useGame();
 
 
   const generateQuestion = useCallback(() => {
@@ -50,6 +52,8 @@ export default function ColorGame() {
       }, 1000);
     } else if (timeLeft === 0) {
       setGameState('finished');
+      // スコア保存
+      saveScore('color', score).catch(console.error);
     }
     
     return () => {

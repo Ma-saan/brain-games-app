@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useGame } from '../../context/GameContext';
 
 export default function MathGame() {
   const [gameState, setGameState] = useState<'waiting' | 'playing' | 'finished'>('waiting');
@@ -11,6 +12,7 @@ export default function MathGame() {
   const [currentProblem, setCurrentProblem] = useState('');
   const [correctAnswer, setCorrectAnswer] = useState(0);
   const [userAnswer, setUserAnswer] = useState('');
+  const { saveScore } = useGame();
 
   const generateProblem = useCallback(() => {
     let a: number, b: number, operation: string, answer: number;
@@ -97,6 +99,8 @@ export default function MathGame() {
       }, 1000);
     } else if (timeLeft === 0) {
       setGameState('finished');
+      // スコア保存
+      saveScore('math', score).catch(console.error);
     }
     
     return () => {
