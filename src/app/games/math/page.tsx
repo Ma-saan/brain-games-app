@@ -106,7 +106,7 @@ export default function MathGame() {
     return () => {
       if (timer) clearTimeout(timer);
     };
-  }, [gameState, timeLeft]);
+  }, [gameState, timeLeft, saveScore, score]);
 
   const resetGame = () => {
     setGameState('waiting');

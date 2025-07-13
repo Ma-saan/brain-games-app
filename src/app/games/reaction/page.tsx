@@ -38,7 +38,7 @@ export default function ReactionGame() {
       // スコア保存
       saveScore('reaction', reaction).catch(console.error);
     }
-  }, [gameState, startTime, timeoutId]);
+  }, [gameState, startTime, timeoutId, saveScore]);
 
   const resetGame = useCallback(() => {
     if (timeoutId) {

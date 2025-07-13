@@ -16,7 +16,7 @@ export default function TestSupabasePage() {
       console.log('Supabase Key exists:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
       
       // 1. 接続テスト
-      const { data: healthCheck, error: healthError } = await supabase
+      const { error: healthError } = await supabase
         .from('user_scores')
         .select('count', { count: 'exact', head: true });
       
