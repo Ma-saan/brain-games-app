@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase, UserScore } from '@/lib/supabase';
+import { getOrCreateAnonymousUser, getCurrentUserId } from '@/lib/auth';
 
 interface GameScores {
   reaction: number | null;
@@ -24,6 +25,7 @@ interface GameContextType {
   getCurrentUserScores: () => GameScores;
   getBestScore: (game: keyof GameScores) => string;
   loadAllScores: () => Promise<void>;
+  isReady: boolean;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -31,23 +33,39 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUserState] = useState('ゲスト');
   const [userScores, setUserScores] = useState<UserScores>({});
+  const [isReady, setIsReady] = useState(false);
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    // ページ読み込み時にlocalStorageから復元
-    const savedUser = localStorage.getItem('currentUser');
-    const savedScores = localStorage.getItem('brainGameUserScores');
-    
-    if (savedUser) {
-      setCurrentUserState(savedUser);
-    }
-    
-    if (savedScores) {
-      setUserScores(JSON.parse(savedScores));
-    }
-
-    // Supabaseからスコアを読み込み
-    loadAllScores();
+    initializeAuth();
   }, []);
+
+  const initializeAuth = async () => {
+    try {
+      console.log('🔐 匿名認証を初期化中...');
+      
+      // 匿名認証の初期化
+      const authUser = await getOrCreateAnonymousUser();
+      setAuthUserId(authUser.id);
+      
+      console.log('✅ 匿名認証成功:', authUser.id);
+      
+      // LocalStorageから設定を復元
+      const savedUser = localStorage.getItem('currentUser');
+      if (savedUser) {
+        setCurrentUserState(savedUser);
+      }
+      
+      // スコアを読み込み
+      await loadAllScores();
+      
+      setIsReady(true);
+      console.log('🎮 ゲーム準備完了');
+    } catch (error) {
+      console.error('❌ 認証初期化失敗:', error);
+      setIsReady(true); // エラーでも画面は表示
+    }
+  };
 
   const setCurrentUser = (username: string) => {
     const user = username.trim() || 'ゲスト';
@@ -68,120 +86,91 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         }
       };
       setUserScores(newUserScores);
-      localStorage.setItem('brainGameUserScores', JSON.stringify(newUserScores));
     }
   };
 
   const saveScore = async (game: keyof GameScores, score: number): Promise<boolean> => {
-    const currentScores = userScores[currentUser] || {
-      reaction: null,
-      memory: null,
-      color: null,
-      math: null,
-      pattern: null,
-      typing: null
-    };
-
-    // リアクションテストは小さい方が良いスコア、他は大きい方が良い
-    const isBetter = game === 'reaction' 
-      ? (!currentScores[game] || score < currentScores[game])
-      : (!currentScores[game] || score > currentScores[game]);
-
-    if (!isBetter) {
-      return false; // スコア更新されなかった
+    if (!authUserId) {
+      console.error('❌ ユーザーが認証されていません');
+      return false;
     }
 
     try {
-      // Supabaseにスコアを保存（upsert: 存在すれば更新、なければ作成）
+      console.log(`💾 スコア保存中: ${game} = ${score}`);
+      
+      // 現在のベストスコアを確認
+      const { data: currentScore } = await supabase
+        .from('user_scores')
+        .select('score')
+        .eq('user_id', authUserId)
+        .eq('game_type', game)
+        .single();
+
+      // より良いスコアかチェック
+      const isBetter = game === 'reaction' 
+        ? (!currentScore || score < currentScore.score)
+        : (!currentScore || score > currentScore.score);
+
+      if (!isBetter) {
+        console.log('📊 既存のベストスコアには及ばず');
+        return false; // スコア更新されなかった
+      }
+
+      // ベストスコア更新
       const { error } = await supabase
         .from('user_scores')
         .upsert({
+          user_id: authUserId,
           user_name: currentUser,
           game_type: game,
           score: score
-        }, {
-          onConflict: 'user_name,game_type'
         });
 
       if (error) {
-        console.error('Error saving score:', error);
-        // Supabaseでエラーが発生した場合はLocalStorageにフォールバック
-        const newUserScores = {
-          ...userScores,
-          [currentUser]: {
-            ...currentScores,
-            [game]: score
-          }
-        };
-        setUserScores(newUserScores);
-        localStorage.setItem('brainGameUserScores', JSON.stringify(newUserScores));
-        return true;
+        console.error('❌ スコア保存エラー:', error);
+        return false;
       }
 
-      // 成功した場合、ローカル状態も更新
-      const newUserScores = {
-        ...userScores,
-        [currentUser]: {
-          ...currentScores,
-          [game]: score
-        }
-      };
-      setUserScores(newUserScores);
-      localStorage.setItem('brainGameUserScores', JSON.stringify(newUserScores));
+      console.log('✅ ベストスコア更新成功!');
       
+      // ローカル状態も更新
+      await loadAllScores();
       return true;
+      
     } catch (error) {
-      console.error('Error saving score:', error);
-      // エラー時はLocalStorageにフォールバック
-      const newUserScores = {
-        ...userScores,
-        [currentUser]: {
-          ...currentScores,
-          [game]: score
-        }
-      };
-      setUserScores(newUserScores);
-      localStorage.setItem('brainGameUserScores', JSON.stringify(newUserScores));
-      return true;
+      console.error('❌ スコア保存エラー:', error);
+      return false;
     }
   };
 
   const loadAllScores = async () => {
     try {
-      const { data: scores, error } = await supabase
+      const { data, error } = await supabase
         .from('user_scores')
-        .select('*');
+        .select('user_name, game_type, score')
+        .order('user_name');
 
       if (error) {
-        console.error('Error loading scores:', error);
+        console.error('❌ スコア読み込みエラー:', error);
         return;
       }
 
-      // Supabaseのデータを内部形式に変換
+      // データ整形
       const formattedScores: UserScores = {};
-      
-      scores?.forEach((score: UserScore) => {
+      data?.forEach((score) => {
         if (!formattedScores[score.user_name]) {
           formattedScores[score.user_name] = {
-            reaction: null,
-            memory: null,
-            color: null,
-            math: null,
-            pattern: null,
-            typing: null
+            reaction: null, memory: null, color: null,
+            math: null, pattern: null, typing: null
           };
         }
-        formattedScores[score.user_name][score.game_type] = score.score;
+        formattedScores[score.user_name][score.game_type as keyof GameScores] = score.score;
       });
 
-      // LocalStorageのデータとマージ
-      const localScores = JSON.parse(localStorage.getItem('brainGameUserScores') || '{}');
-      const mergedScores = { ...localScores, ...formattedScores };
+      setUserScores(formattedScores);
       
-      setUserScores(mergedScores);
-      localStorage.setItem('brainGameUserScores', JSON.stringify(mergedScores));
     } catch (error) {
-      console.error('Error loading scores from Supabase:', error);
+      console.error('❌ スコア読み込みエラー:', error);
     }
   };
 
@@ -211,7 +200,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       saveScore,
       getCurrentUserScores,
       getBestScore,
-      loadAllScores
+      loadAllScores,
+      isReady
     }}>
       {children}
     </GameContext.Provider>
