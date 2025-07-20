@@ -24,16 +24,24 @@ export default function Home() {
   }
 
   const handleSetUser = () => {
+    console.log('🔘 設定ボタンがクリックされました');
+    console.log('📝 入力されたユーザー名:', `"${username}"`);
+    
     if (username.trim()) {
-      setCurrentUser(username.trim());
+      const trimmedUsername = username.trim();
+      console.log('✅ ユーザー名設定開始:', trimmedUsername);
+      setCurrentUser(trimmedUsername);
       setUsername('');
+      console.log('🗑️ 入力フィールドをクリア');
     } else {
+      console.log('⚠️ ユーザー名が空です');
       alert('ユーザー名を入力してください');
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
+      console.log('⌨️ Enterキーが押されました');
       handleSetUser();
     }
   };
@@ -77,6 +85,8 @@ export default function Home() {
     }
   ];
 
+  console.log('🏠 Home画面レンダリング - 現在のユーザー:', currentUser);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 py-8 px-4">
       <div className="max-w-6xl mx-auto">
@@ -101,7 +111,10 @@ export default function Home() {
               type="text"
               id="username"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => {
+                setUsername(e.target.value);
+                console.log('📝 入力変更:', e.target.value);
+              }}
               onKeyPress={handleKeyPress}
               placeholder="名前を入力してください"
               maxLength={20}
