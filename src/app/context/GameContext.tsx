@@ -1,8 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase, UserScore } from '@/lib/supabase';
-import { getOrCreateAnonymousUser, getCurrentUserId } from '@/lib/auth';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/lib/supabase';
+import { getOrCreateAnonymousUser } from '@/lib/auth';
 
 interface GameScores {
   reaction: number | null;
@@ -36,11 +36,38 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [isReady, setIsReady] = useState(false);
   const [authUserId, setAuthUserId] = useState<string | null>(null);
 
-  useEffect(() => {
-    initializeAuth();
+  const loadAllScores = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_scores')
+        .select('user_name, game_type, score')
+        .order('user_name');
+
+      if (error) {
+        console.error('❌ スコア読み込みエラー:', error);
+        return;
+      }
+
+      // データ整形
+      const formattedScores: UserScores = {};
+      data?.forEach((score) => {
+        if (!formattedScores[score.user_name]) {
+          formattedScores[score.user_name] = {
+            reaction: null, memory: null, color: null,
+            math: null, pattern: null, typing: null
+          };
+        }
+        formattedScores[score.user_name][score.game_type as keyof GameScores] = score.score;
+      });
+
+      setUserScores(formattedScores);
+      
+    } catch (error) {
+      console.error('❌ スコア読み込みエラー:', error);
+    }
   }, []);
 
-  const initializeAuth = async () => {
+  const initializeAuth = useCallback(async () => {
     try {
       console.log('🔐 匿名認証を初期化中...');
       
@@ -67,7 +94,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       console.error('❌ 認証初期化失敗:', error);
       setIsReady(true); // エラーでも画面は表示
     }
-  };
+  }, [loadAllScores]);
+
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
 
   const setCurrentUser = (username: string) => {
     const user = username.trim() || 'ゲスト';
@@ -146,37 +177,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('❌ スコア保存エラー:', error);
       return false;
-    }
-  };
-
-  const loadAllScores = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('user_scores')
-        .select('user_name, game_type, score')
-        .order('user_name');
-
-      if (error) {
-        console.error('❌ スコア読み込みエラー:', error);
-        return;
-      }
-
-      // データ整形
-      const formattedScores: UserScores = {};
-      data?.forEach((score) => {
-        if (!formattedScores[score.user_name]) {
-          formattedScores[score.user_name] = {
-            reaction: null, memory: null, color: null,
-            math: null, pattern: null, typing: null
-          };
-        }
-        formattedScores[score.user_name][score.game_type as keyof GameScores] = score.score;
-      });
-
-      setUserScores(formattedScores);
-      
-    } catch (error) {
-      console.error('❌ スコア読み込みエラー:', error);
     }
   };
 
