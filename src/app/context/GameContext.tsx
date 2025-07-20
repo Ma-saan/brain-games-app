@@ -99,7 +99,63 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     initializeAuth();
   }, [initializeAuth]);
 
-  const setCurrentUser = (username: string) => {
+  const registerUserInDatabase = async (username: string) => {
+    console.log('🗃️ Supabaseにユーザー登録開始:', username);
+    
+    try {
+      // 既存ユーザーかチェック
+      const { data: existingUser, error: checkError } = await supabase
+        .from('user_scores')
+        .select('user_name')
+        .eq('user_name', username)
+        .limit(1);
+
+      if (checkError) {
+        console.error('❌ ユーザー存在確認エラー:', checkError);
+        return false;
+      }
+
+      if (existingUser && existingUser.length > 0) {
+        console.log('👤 既存ユーザーです:', username);
+        return true;
+      }
+
+      // 新規ユーザーの場合、全ゲーム分の初期レコードを作成
+      const gameTypes: Array<keyof GameScores> = ['reaction', 'memory', 'color', 'math', 'pattern', 'typing'];
+      console.log('🆕 新規ユーザー登録:', username);
+      
+      const initialRecords = gameTypes.map(gameType => ({
+        user_name: username,
+        game_type: gameType,
+        score: null // 初期状態はnull
+      }));
+
+      console.log('📝 作成するレコード:', initialRecords);
+
+      const { data, error } = await supabase
+        .from('user_scores')
+        .insert(initialRecords);
+
+      if (error) {
+        console.error('❌ ユーザー登録エラー:', error);
+        return false;
+      }
+
+      console.log('✅ ユーザー登録成功!', data);
+      console.log(`🎉 ${username} が Supabase に登録されました！`);
+      
+      // スコアを再読み込み
+      await loadAllScores();
+      
+      return true;
+      
+    } catch (error) {
+      console.error('❌ ユーザー登録処理エラー:', error);
+      return false;
+    }
+  };
+
+  const setCurrentUser = async (username: string) => {
     const user = username.trim() || 'ゲスト';
     console.log('👤 ユーザー設定開始:', user);
     
@@ -112,10 +168,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       console.log('💾 LocalStorageに保存:', user);
     }
     
-    // 新しいユーザーの場合、初期スコアを設定
+    // ゲストユーザー以外はSupabaseに登録
+    if (user !== 'ゲスト') {
+      const registered = await registerUserInDatabase(user);
+      if (registered) {
+        console.log('🎯 ユーザー登録処理完了:', user);
+      } else {
+        console.error('⚠️ ユーザー登録に失敗しました:', user);
+      }
+    }
+    
+    // ローカル状態の初期スコア設定
     console.log('📊 現在のuserScores:', userScores);
     if (!userScores[user]) {
-      console.log('🆕 新しいユーザーの初期スコア作成:', user);
+      console.log('🆕 ローカル初期スコア作成:', user);
       const newUserScores = {
         ...userScores,
         [user]: {
@@ -144,7 +210,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const { data: currentScore } = await supabase
         .from('user_scores')
         .select('score')
-        .eq('user_name', currentUser)  // ✅ user_nameで検索
+        .eq('user_name', currentUser)
         .eq('game_type', game)
         .single();
 
@@ -152,14 +218,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
       // より良いスコアかチェック
       const isBetter = game === 'reaction' 
-        ? (!currentScore || score < currentScore.score)
-        : (!currentScore || score > currentScore.score);
+        ? (!currentScore?.score || score < currentScore.score)
+        : (!currentScore?.score || score > currentScore.score);
 
       console.log('🏆 より良いスコア？:', isBetter);
 
       if (!isBetter) {
         console.log('📊 既存のベストスコアには及ばず');
-        return false; // スコア更新されなかった
+        return false;
       }
 
       // ベストスコア更新
@@ -167,7 +233,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase
         .from('user_scores')
         .upsert({
-          user_name: currentUser,      // ✅ user_nameのみ使用
+          user_name: currentUser,
           game_type: game,
           score: score
         });
