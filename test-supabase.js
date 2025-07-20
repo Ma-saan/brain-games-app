@@ -24,7 +24,7 @@ CREATE TABLE user_scores (
   id SERIAL PRIMARY KEY,
   user_name TEXT NOT NULL,
   game_type TEXT NOT NULL CHECK (game_type IN ('reaction', 'memory', 'color', 'math', 'pattern', 'typing')),
-  score INTEGER NOT NULL,
+  score INTEGER, -- NULLを許可（初期登録時はnull）
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
   UNIQUE(user_name, game_type)
@@ -41,26 +41,57 @@ CREATE POLICY "Enable delete access for all users" ON user_scores FOR DELETE USI
       console.log('✅ Supabase接続成功！');
       console.log('📊 現在のレコード:', data);
       
-      // テストデータ挿入
-      console.log('\n💾 テストデータ挿入中...');
-      const { data: insertData, error: insertError } = await supabase
+      // 既存テーブルのscoreカラムがNULLABLEかチェック
+      console.log('\n🔍 scoreカラムがNULLABLEか確認中...');
+      const { data: nullTestData, error: nullTestError } = await supabase
         .from('user_scores')
-        .upsert({
-          user_name: 'TestUser',
+        .insert({
+          user_name: 'NullTest',
           game_type: 'reaction',
-          score: 350
+          score: null
         });
         
-      if (insertError) {
-        console.error('❌ 挿入エラー:', insertError);
+      if (nullTestError) {
+        if (nullTestError.message.includes('null value in column "score"')) {
+          console.log('⚠️ scoreカラムがNOT NULLです。以下のSQLを実行してください:');
+          console.log('ALTER TABLE user_scores ALTER COLUMN score DROP NOT NULL;');
+        } else {
+          console.error('❌ NULLテストエラー:', nullTestError);
+        }
       } else {
-        console.log('✅ テストデータ挿入成功');
+        console.log('✅ scoreカラムはNULLABLEです');
+        
+        // テストデータを削除
+        await supabase
+          .from('user_scores')
+          .delete()
+          .eq('user_name', 'NullTest');
+      }
+      
+      // ユーザー登録テスト
+      console.log('\n👤 ユーザー登録テスト中...');
+      const gameTypes = ['reaction', 'memory', 'color', 'math', 'pattern', 'typing'];
+      const testRecords = gameTypes.map(gameType => ({
+        user_name: 'TestUser',
+        game_type: gameType,
+        score: null
+      }));
+
+      const { data: insertData, error: insertError } = await supabase
+        .from('user_scores')
+        .upsert(testRecords);
+        
+      if (insertError) {
+        console.error('❌ ユーザー登録テストエラー:', insertError);
+      } else {
+        console.log('✅ ユーザー登録テスト成功');
         
         // 再度全データ確認
         const { data: allData } = await supabase
           .from('user_scores')
-          .select('*');
-        console.log('📊 更新後のレコード:', allData);
+          .select('*')
+          .order('user_name, game_type');
+        console.log('📊 テスト後のレコード:', allData);
       }
     }
   } catch (error) {
