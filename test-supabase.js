@@ -10,7 +10,7 @@ async function testConnection() {
   try {
     console.log('Supabaseに接続中...');
     
-    // テーブル一覧取得でテスト
+    // テーブル確認
     const { data, error } = await supabase
       .from('user_scores')
       .select('*');
@@ -20,22 +20,16 @@ async function testConnection() {
       if (error.message.includes('relation "user_scores" does not exist')) {
         console.log('💡 user_scoresテーブルが存在しません。Supabaseで以下のSQLを実行してください:');
         console.log(`
--- 既存テーブルがあれば削除
-DROP TABLE IF EXISTS user_scores;
-
--- 正しい構造でテーブル作成
 CREATE TABLE user_scores (
   id SERIAL PRIMARY KEY,
-  user_id UUID NOT NULL,
   user_name TEXT NOT NULL,
   game_type TEXT NOT NULL CHECK (game_type IN ('reaction', 'memory', 'color', 'math', 'pattern', 'typing')),
   score INTEGER NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
-  UNIQUE(user_id, game_type)
+  UNIQUE(user_name, game_type)
 );
 
--- RLS設定
 ALTER TABLE user_scores ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Enable read access for all users" ON user_scores FOR SELECT USING (true);
 CREATE POLICY "Enable insert access for all users" ON user_scores FOR INSERT WITH CHECK (true);
@@ -47,34 +41,26 @@ CREATE POLICY "Enable delete access for all users" ON user_scores FOR DELETE USI
       console.log('✅ Supabase接続成功！');
       console.log('📊 現在のレコード:', data);
       
-      // テーブル構造確認
-      console.log('\n🔍 テーブル構造確認中...');
-      
-      // 匿名認証テスト
-      console.log('\n🔐 匿名認証テスト中...');
-      const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
-      
-      if (authError) {
-        console.error('❌ 匿名認証エラー:', authError);
-      } else {
-        console.log('✅ 匿名認証成功:', authData.user?.id);
+      // テストデータ挿入
+      console.log('\n💾 テストデータ挿入中...');
+      const { data: insertData, error: insertError } = await supabase
+        .from('user_scores')
+        .upsert({
+          user_name: 'TestUser',
+          game_type: 'reaction',
+          score: 350
+        });
         
-        // テストデータ挿入
-        console.log('\n💾 テストデータ挿入中...');
-        const { data: insertData, error: insertError } = await supabase
+      if (insertError) {
+        console.error('❌ 挿入エラー:', insertError);
+      } else {
+        console.log('✅ テストデータ挿入成功');
+        
+        // 再度全データ確認
+        const { data: allData } = await supabase
           .from('user_scores')
-          .upsert({
-            user_id: authData.user.id,
-            user_name: 'TestUser',
-            game_type: 'reaction',
-            score: 500
-          });
-          
-        if (insertError) {
-          console.error('❌ 挿入エラー:', insertError);
-        } else {
-          console.log('✅ テストデータ挿入成功:', insertData);
-        }
+          .select('*');
+        console.log('📊 更新後のレコード:', allData);
       }
     }
   } catch (error) {
