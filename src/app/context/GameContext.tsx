@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { getOrCreateAnonymousUser } from '@/lib/auth';
 
 interface GameScores {
   reaction: number | null;
@@ -67,13 +66,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const initializeAuth = useCallback(async () => {
+  const initializeApp = useCallback(async () => {
     try {
-      console.log('🔐 初期化中...');
-      
-      // 匿名認証（セキュリティのため）
-      await getOrCreateAnonymousUser();
-      console.log('✅ 匿名認証成功');
+      console.log('🚀 アプリ初期化中...');
       
       // LocalStorageから設定を復元（クライアントサイドのみ）
       if (typeof window !== 'undefined') {
@@ -88,7 +83,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       await loadAllScores();
       
       setIsReady(true);
-      console.log('🎮 ゲーム準備完了');
+      console.log('✅ アプリ初期化完了');
     } catch (error) {
       console.error('❌ 初期化失敗:', error);
       setIsReady(true); // エラーでも画面は表示
@@ -96,8 +91,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, [loadAllScores]);
 
   useEffect(() => {
-    initializeAuth();
-  }, [initializeAuth]);
+    initializeApp();
+  }, [initializeApp]);
 
   const registerUserInDatabase = async (username: string) => {
     console.log('🗃️ Supabaseにユーザー登録開始:', username);
@@ -228,15 +223,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
 
-      // ベストスコア更新
-      console.log('💾 Supabaseにスコア保存中...');
+      // ベストスコア更新 - UPDATEを使用（レコードは既に存在する）
+      console.log('💾 Supabaseにスコア更新中...');
       const { error } = await supabase
         .from('user_scores')
-        .upsert({
-          user_name: currentUser,
-          game_type: game,
-          score: score
-        });
+        .update({
+          score: score,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_name', currentUser)
+        .eq('game_type', game);
 
       if (error) {
         console.error('❌ スコア保存エラー:', error);
