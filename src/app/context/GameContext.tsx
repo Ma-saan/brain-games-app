@@ -61,6 +61,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       });
 
       setUserScores(formattedScores);
+      console.log('📊 スコア読み込み完了:', formattedScores);
       
     } catch (error) {
       console.error('❌ スコア読み込みエラー:', error);
@@ -81,6 +82,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (typeof window !== 'undefined') {
         const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
+          console.log('📱 LocalStorageからユーザー復元:', savedUser);
           setCurrentUserState(savedUser);
         }
       }
@@ -102,15 +104,21 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const setCurrentUser = (username: string) => {
     const user = username.trim() || 'ゲスト';
+    console.log('👤 ユーザー設定開始:', user);
+    
     setCurrentUserState(user);
+    console.log('✅ ユーザー状態更新:', user);
     
     // LocalStorageに保存（クライアントサイドのみ）
     if (typeof window !== 'undefined') {
       localStorage.setItem('currentUser', user);
+      console.log('💾 LocalStorageに保存:', user);
     }
     
     // 新しいユーザーの場合、初期スコアを設定
+    console.log('📊 現在のuserScores:', userScores);
     if (!userScores[user]) {
+      console.log('🆕 新しいユーザーの初期スコア作成:', user);
       const newUserScores = {
         ...userScores,
         [user]: {
@@ -123,17 +131,22 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         }
       };
       setUserScores(newUserScores);
+      console.log('✅ 新しいuserScores:', newUserScores);
+    } else {
+      console.log('👤 既存ユーザー:', user, userScores[user]);
     }
   };
 
   const saveScore = async (game: keyof GameScores, score: number): Promise<boolean> => {
+    console.log(`💾 スコア保存開始: ${currentUser} - ${game} = ${score}`);
+    
     if (!authUserId) {
       console.error('❌ ユーザーが認証されていません');
       return false;
     }
 
     try {
-      console.log(`💾 スコア保存中: ${game} = ${score}`);
+      console.log(`🔍 現在のベストスコア確認中: ${game}`);
       
       // 現在のベストスコアを確認
       const { data: currentScore } = await supabase
@@ -143,10 +156,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         .eq('game_type', game)
         .single();
 
+      console.log('📊 既存スコア:', currentScore);
+
       // より良いスコアかチェック
       const isBetter = game === 'reaction' 
         ? (!currentScore || score < currentScore.score)
         : (!currentScore || score > currentScore.score);
+
+      console.log('🏆 より良いスコア？:', isBetter);
 
       if (!isBetter) {
         console.log('📊 既存のベストスコアには及ばず');
@@ -154,6 +171,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       }
 
       // ベストスコア更新
+      console.log('💾 Supabaseにスコア保存中...');
       const { error } = await supabase
         .from('user_scores')
         .upsert({
@@ -181,7 +199,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   };
 
   const getCurrentUserScores = (): GameScores => {
-    return userScores[currentUser] || {
+    const scores = userScores[currentUser] || {
       reaction: null,
       memory: null,
       color: null,
@@ -189,6 +207,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       pattern: null,
       typing: null
     };
+    console.log('📊 現在のユーザースコア取得:', currentUser, scores);
+    return scores;
   };
 
   const getBestScore = (game: keyof GameScores): string => {
