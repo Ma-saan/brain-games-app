@@ -201,14 +201,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log(`🔍 現在のベストスコア確認中: ${game}`);
       
-      // 現在のベストスコアを確認
-      const { data: currentScore } = await supabase
+      // 現在のベストスコアを確認 - .single()を削除して安全なクエリに変更
+      const { data: scoreData, error: fetchError } = await supabase
         .from('user_scores')
         .select('score')
         .eq('user_name', currentUser)
         .eq('game_type', game)
-        .single();
+        .limit(1);
 
+      if (fetchError) {
+        console.error('❌ スコア取得エラー:', fetchError);
+        return false;
+      }
+
+      const currentScore = scoreData && scoreData.length > 0 ? scoreData[0] : null;
       console.log('📊 既存スコア:', currentScore);
 
       // より良いスコアかチェック
@@ -216,7 +222,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         ? (!currentScore?.score || score < currentScore.score)
         : (!currentScore?.score || score > currentScore.score);
 
-      console.log('🏆 より良いスコア？:', isBetter);
+      console.log('🏆 より良いスコア？:', isBetter, {
+        gameType: game,
+        newScore: score,
+        currentBest: currentScore?.score,
+        isReactionGame: game === 'reaction'
+      });
 
       if (!isBetter) {
         console.log('📊 既存のベストスコアには及ばず');
@@ -225,7 +236,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
       // ベストスコア更新 - UPDATEを使用（レコードは既に存在する）
       console.log('💾 Supabaseにスコア更新中...');
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('user_scores')
         .update({
           score: score,
@@ -234,19 +245,24 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         .eq('user_name', currentUser)
         .eq('game_type', game);
 
-      if (error) {
-        console.error('❌ スコア保存エラー:', error);
+      if (updateError) {
+        console.error('❌ スコア保存エラー:', updateError);
         return false;
       }
 
-      console.log('✅ ベストスコア更新成功!');
+      console.log('✅ ベストスコア更新成功!', {
+        user: currentUser,
+        game: game,
+        newScore: score,
+        previousScore: currentScore?.score
+      });
       
       // ローカル状態も更新
       await loadAllScores();
       return true;
       
     } catch (error) {
-      console.error('❌ スコア保存エラー:', error);
+      console.error('❌ スコア保存処理エラー:', error);
       return false;
     }
   };
