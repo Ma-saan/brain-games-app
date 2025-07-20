@@ -34,7 +34,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUserState] = useState('ゲスト');
   const [userScores, setUserScores] = useState<UserScores>({});
   const [isReady, setIsReady] = useState(false);
-  const [authUserId, setAuthUserId] = useState<string | null>(null);
 
   const loadAllScores = useCallback(async () => {
     try {
@@ -70,13 +69,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const initializeAuth = useCallback(async () => {
     try {
-      console.log('🔐 匿名認証を初期化中...');
+      console.log('🔐 初期化中...');
       
-      // 匿名認証の初期化
-      const authUser = await getOrCreateAnonymousUser();
-      setAuthUserId(authUser.id);
-      
-      console.log('✅ 匿名認証成功:', authUser.id);
+      // 匿名認証（セキュリティのため）
+      await getOrCreateAnonymousUser();
+      console.log('✅ 匿名認証成功');
       
       // LocalStorageから設定を復元（クライアントサイドのみ）
       if (typeof window !== 'undefined') {
@@ -93,7 +90,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setIsReady(true);
       console.log('🎮 ゲーム準備完了');
     } catch (error) {
-      console.error('❌ 認証初期化失敗:', error);
+      console.error('❌ 初期化失敗:', error);
       setIsReady(true); // エラーでも画面は表示
     }
   }, [loadAllScores]);
@@ -140,11 +137,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const saveScore = async (game: keyof GameScores, score: number): Promise<boolean> => {
     console.log(`💾 スコア保存開始: ${currentUser} - ${game} = ${score}`);
     
-    if (!authUserId) {
-      console.error('❌ ユーザーが認証されていません');
-      return false;
-    }
-
     try {
       console.log(`🔍 現在のベストスコア確認中: ${game}`);
       
@@ -152,7 +144,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const { data: currentScore } = await supabase
         .from('user_scores')
         .select('score')
-        .eq('user_id', authUserId)
+        .eq('user_name', currentUser)  // ✅ user_nameで検索
         .eq('game_type', game)
         .single();
 
@@ -175,8 +167,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase
         .from('user_scores')
         .upsert({
-          user_id: authUserId,
-          user_name: currentUser,
+          user_name: currentUser,      // ✅ user_nameのみ使用
           game_type: game,
           score: score
         });
