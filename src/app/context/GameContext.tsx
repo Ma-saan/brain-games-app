@@ -50,10 +50,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       
       console.log('✅ 匿名認証成功:', authUser.id);
       
-      // LocalStorageから設定を復元
-      const savedUser = localStorage.getItem('currentUser');
-      if (savedUser) {
-        setCurrentUserState(savedUser);
+      // LocalStorageから設定を復元（クライアントサイドのみ）
+      if (typeof window !== 'undefined') {
+        const savedUser = localStorage.getItem('currentUser');
+        if (savedUser) {
+          setCurrentUserState(savedUser);
+        }
       }
       
       // スコアを読み込み
@@ -70,7 +72,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const setCurrentUser = (username: string) => {
     const user = username.trim() || 'ゲスト';
     setCurrentUserState(user);
-    localStorage.setItem('currentUser', user);
+    
+    // LocalStorageに保存（クライアントサイドのみ）
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('currentUser', user);
+    }
     
     // 新しいユーザーの場合、初期スコアを設定
     if (!userScores[user]) {
