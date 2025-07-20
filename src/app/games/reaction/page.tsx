@@ -9,14 +9,17 @@ export default function ReactionGame() {
   const [reactionTime, setReactionTime] = useState<number | null>(null);
   const [startTime, setStartTime] = useState<number>(0);
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
-  const { saveScore } = useGame();
+  const { saveScore, currentUser } = useGame();
 
   const startGame = useCallback(() => {
+    console.log('🎮 リアクションゲーム開始');
     setGameState('ready');
     setReactionTime(null);
     
     const delay = Math.random() * 4000 + 1000; // 1-5秒のランダム待機
+    console.log(`⏰ ${delay}ms後に緑になります`);
     const id = setTimeout(() => {
+      console.log('🟢 緑になりました！');
       setGameState('go');
       setStartTime(Date.now());
     }, delay);
@@ -24,8 +27,11 @@ export default function ReactionGame() {
     setTimeoutId(id);
   }, []);
 
-  const handleClick = useCallback(() => {
+  const handleClick = useCallback(async () => {
+    console.log('🖱️ クリックされました - 現在の状態:', gameState);
+    
     if (gameState === 'ready') {
+      console.log('❌ フライング！');
       setGameState('too-early');
       if (timeoutId) {
         clearTimeout(timeoutId);
@@ -33,14 +39,25 @@ export default function ReactionGame() {
       }
     } else if (gameState === 'go') {
       const reaction = Date.now() - startTime;
+      console.log('⚡ リアクション時間:', reaction + 'ms');
+      console.log('👤 現在のユーザー:', currentUser);
+      
       setReactionTime(reaction);
       setGameState('clicked');
+      
       // スコア保存
-      saveScore('reaction', reaction).catch(console.error);
+      console.log('💾 スコア保存開始...');
+      try {
+        const saved = await saveScore('reaction', reaction);
+        console.log('✅ スコア保存結果:', saved);
+      } catch (error) {
+        console.error('❌ スコア保存エラー:', error);
+      }
     }
-  }, [gameState, startTime, timeoutId, saveScore]);
+  }, [gameState, startTime, timeoutId, saveScore, currentUser]);
 
   const resetGame = useCallback(() => {
+    console.log('🔄 ゲームリセット');
     if (timeoutId) {
       clearTimeout(timeoutId);
       setTimeoutId(null);
@@ -83,6 +100,8 @@ export default function ReactionGame() {
     }
   };
 
+  console.log('🎯 リアクションゲーム レンダリング - ユーザー:', currentUser, 'ゲーム状態:', gameState);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 py-8 px-4">
       <div className="max-w-4xl mx-auto">
@@ -92,6 +111,7 @@ export default function ReactionGame() {
           </Link>
           <h1 className="text-3xl font-bold text-gray-800 mb-2">⚡ リアクションテスト</h1>
           <p className="text-gray-600">画面が緑になったら即座にクリック！</p>
+          <p className="text-sm text-blue-600">現在のユーザー: {currentUser}</p>
         </div>
 
         <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
