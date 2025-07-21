@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { GameState } from '@/types/game';
+import { useGameAudio } from '@/hooks/useAudioPlayer';
 
 interface MathProblem {
   question: string;
@@ -33,6 +34,9 @@ export const useMathGame = (saveScore?: (game: 'math', score: number) => Promise
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
   const [currentProblem, setCurrentProblem] = useState<MathProblem>({ question: '', answer: 0 });
   const [userAnswer, setUserAnswer] = useState('');
+
+  // 効果音機能を追加
+  const { playCorrect, playIncorrect, playStart, playSuccess, playFail } = useGameAudio();
 
   // 問題生成関数
   const generateProblem = useCallback((gameLevel: number): MathProblem => {
@@ -84,13 +88,14 @@ export const useMathGame = (saveScore?: (game: 'math', score: number) => Promise
 
   // ゲーム開始
   const startGame = useCallback(() => {
+    playStart(); // 開始音を再生
     setGameState('playing');
     setScore(0);
     setLevel(1);
     setTimeLeft(GAME_DURATION);
     setUserAnswer('');
     setCurrentProblem(generateProblem(1));
-  }, [generateProblem]);
+  }, [generateProblem, playStart]);
 
   // 回答処理
   const submitAnswer = useCallback((e: React.FormEvent) => {
@@ -102,18 +107,26 @@ export const useMathGame = (saveScore?: (game: 'math', score: number) => Promise
     if (isNaN(answer)) return;
     
     if (answer === currentProblem.answer) {
+      // 正解時の効果音
+      playCorrect();
+      
       const newScore = score + level * SCORE_PER_CORRECT;
       setScore(newScore);
       
       // レベルアップ条件チェック
       if (newScore >= level * LEVEL_UP_MULTIPLIER) {
         setLevel(prevLevel => prevLevel + 1);
+        // レベルアップ時は成功音を再生
+        setTimeout(() => playSuccess(), 200);
       }
+    } else {
+      // 不正解時の効果音
+      playIncorrect();
     }
     
     setUserAnswer('');
     setCurrentProblem(generateProblem(level));
-  }, [gameState, userAnswer, currentProblem.answer, score, level, generateProblem]);
+  }, [gameState, userAnswer, currentProblem.answer, score, level, generateProblem, playCorrect, playIncorrect, playSuccess]);
 
   // ゲームリセット
   const resetGame = useCallback(() => {
@@ -135,6 +148,14 @@ export const useMathGame = (saveScore?: (game: 'math', score: number) => Promise
       }, 1000);
     } else if (timeLeft === 0 && gameState === 'playing') {
       setGameState('finished');
+      
+      // ゲーム終了時の効果音（スコアに応じて）
+      if (score > 100) {
+        playSuccess(); // 高スコア時は成功音
+      } else {
+        playFail(); // 低スコア時は失敗音
+      }
+      
       // スコア保存
       if (saveScore) {
         saveScore('math', score).catch(console.error);
@@ -144,7 +165,7 @@ export const useMathGame = (saveScore?: (game: 'math', score: number) => Promise
     return () => {
       if (timer) clearTimeout(timer);
     };
-  }, [gameState, timeLeft, saveScore, score]);
+  }, [gameState, timeLeft, saveScore, score, playSuccess, playFail]);
 
   const state: MathGameState = {
     gameState,
