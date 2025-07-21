@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { GameState } from '../types/game';
+import { GameState } from '@/types/game';
 
 interface MathProblem {
   question: string;
