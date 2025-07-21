@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { GameState } from '@/types/game';
 import { getRandomElement } from '@/utils/random';
+import { useGameAudio } from '@/hooks/useAudioPlayer';
 
 interface TypingGameState {
   gameState: GameState;
@@ -47,6 +48,9 @@ export const useTypingGame = (saveScore?: (game: 'typing', score: number) => Pro
   const [totalChars, setTotalChars] = useState(0);
   const [correctChars, setCorrectChars] = useState(0);
 
+  // 効果音機能を追加
+  const { playCorrect, playIncorrect, playStart, playSuccess, playFail, playClick } = useGameAudio();
+
   // ランダムな単語を取得
   const getRandomWord = useCallback(() => {
     return getRandomElement(WORD_LIST);
@@ -54,6 +58,7 @@ export const useTypingGame = (saveScore?: (game: 'typing', score: number) => Pro
 
   // ゲーム開始
   const startGame = useCallback(() => {
+    playStart(); // 開始音を再生
     setGameState('playing');
     setScore(0);
     setTimeLeft(GAME_DURATION);
@@ -62,14 +67,21 @@ export const useTypingGame = (saveScore?: (game: 'typing', score: number) => Pro
     setTotalChars(0);
     setCorrectChars(0);
     setCurrentWord(getRandomWord());
-  }, [getRandomWord]);
+  }, [getRandomWord, playStart]);
 
   // 入力処理
   const handleInputChange = useCallback((value: string) => {
+    // 文字入力時のクリック音（少し控えめに）
+    if (value.length > userInput.length) {
+      playClick();
+    }
+    
     setUserInput(value);
     
     if (value === currentWord) {
-      // 単語完成
+      // 単語完成時の正解音
+      playCorrect();
+      
       const wordScore = currentWord.length * POINTS_PER_CHAR;
       setScore(prevScore => prevScore + wordScore);
       setCompletedWords(prevCompleted => prevCompleted + 1);
@@ -79,8 +91,11 @@ export const useTypingGame = (saveScore?: (game: 'typing', score: number) => Pro
       // 次の単語
       setUserInput('');
       setCurrentWord(getRandomWord());
+    } else if (value.length === currentWord.length && value !== currentWord) {
+      // 単語の長さに達したが間違っている場合
+      playIncorrect();
     }
-  }, [currentWord, getRandomWord]);
+  }, [currentWord, getRandomWord, userInput.length, playCorrect, playIncorrect, playClick]);
 
   // ゲームリセット
   const resetGame = useCallback(() => {
@@ -141,6 +156,14 @@ export const useTypingGame = (saveScore?: (game: 'typing', score: number) => Pro
       
       setGameState('finished');
       
+      // ゲーム終了時の効果音（WPMとaccuracyに応じて）
+      const stats = getStats();
+      if (stats.wpm >= 40 && stats.accuracy >= 90) {
+        playSuccess(); // 高パフォーマンス時は成功音
+      } else {
+        playFail(); // 低パフォーマンス時は失敗音
+      }
+      
       // スコア保存
       if (saveScore) {
         saveScore('typing', score).catch(console.error);
@@ -150,7 +173,7 @@ export const useTypingGame = (saveScore?: (game: 'typing', score: number) => Pro
     return () => {
       if (timer) clearTimeout(timer);
     };
-  }, [gameState, timeLeft, userInput, currentWord, correctChars, score, saveScore]);
+  }, [gameState, timeLeft, userInput, currentWord, correctChars, score, saveScore, getStats, playSuccess, playFail]);
 
   const state: TypingGameState = {
     gameState,
