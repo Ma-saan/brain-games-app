@@ -6,6 +6,13 @@ export interface AudioConfig {
   enabled: boolean;
 }
 
+// Web Audio APIの型定義拡張
+declare global {
+  interface Window {
+    webkitAudioContext: typeof AudioContext;
+  }
+}
+
 class AudioManager {
   private audioContext: AudioContext | null = null;
   private audioBuffers: Map<SoundType, AudioBuffer> = new Map();
@@ -19,7 +26,7 @@ class AudioManager {
   // Web Audio API形式の簡単な効果音を生成
   private generateTone(frequency: number, duration: number, volume: number = 0.3): AudioBuffer {
     if (!this.audioContext) {
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
     
     const sampleRate = this.audioContext.sampleRate;
@@ -40,7 +47,7 @@ class AudioManager {
   // 成功音の生成（明るい上昇音）
   private generateSuccessSound(): AudioBuffer {
     if (!this.audioContext) {
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
 
     const sampleRate = this.audioContext.sampleRate;
@@ -62,7 +69,7 @@ class AudioManager {
   // エラー音の生成（低い音）
   private generateErrorSound(): AudioBuffer {
     if (!this.audioContext) {
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
 
     const sampleRate = this.audioContext.sampleRate;
@@ -84,7 +91,7 @@ class AudioManager {
   // 初期化：プリセット音を生成
   async initialize(): Promise<void> {
     if (!this.audioContext) {
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
 
     try {
