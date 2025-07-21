@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import Link from "next/link";
 import { useGame } from './context/GameContext';
-import { GameCard } from '../components/ui/GameCard';
-import { Button } from '../components/ui/Button';
-import { GAME_CARDS } from '../data/games';
+import { GameCard } from '@/components/ui/GameCard';
+import { Button } from '@/components/ui/Button';
+import { GAME_CARDS } from '@/data/games';
 
 export default function Home() {
   const [username, setUsername] = useState('');
