@@ -1,5 +1,6 @@
 'use client';
 
+import { useGame } from '../../context/GameContext';
 import { usePatternGame } from '../../../hooks/usePatternGame';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { GameLayout } from '../../../components/layout/GameLayout';
@@ -9,6 +10,7 @@ import { GameResultDisplay } from '../../../components/ui/GameResultDisplay';
 import { GameInstructions } from '../../../components/ui/GameInstructions';
 
 export default function PatternGame() {
+  const { saveScore } = useGame();
   const {
     gameState,
     score,
@@ -18,7 +20,7 @@ export default function PatternGame() {
     startGame,
     handleAnswer,
     resetGame
-  } = usePatternGame();
+  } = usePatternGame(saveScore);
 
   const getRating = (score: number) => {
     if (score >= 90) return '🧠 パターン認識の天才！';
