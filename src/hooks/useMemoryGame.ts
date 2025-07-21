@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useGame } from '@/app/context/GameContext';
 import { GameState } from '@/types/game';
 import { generateRandomArray } from '@/utils/random';
+import { useGameAudio } from '@/hooks/useAudioPlayer';
 
 export interface UseMemoryGameReturn {
   gameState: GameState;
@@ -31,6 +32,9 @@ export function useMemoryGame(): UseMemoryGameReturn {
   const [isProcessingAnswer, setIsProcessingAnswer] = useState(false);
   const { saveScore } = useGame();
 
+  // 効果音機能を追加
+  const { playCorrect, playIncorrect, playStart, playSuccess, playFail, playClick } = useGameAudio();
+
   const generateSequence = useCallback((length: number) => {
     // 1-9の数字をランダムに生成
     return generateRandomArray(length, 1, 9);
@@ -46,6 +50,7 @@ export function useMemoryGame(): UseMemoryGameReturn {
     
     for (let i = 0; i < seq.length; i++) {
       setHighlightedButton(seq[i]);
+      playClick(); // 各ボタンの表示時にクリック音
       await new Promise(resolve => setTimeout(resolve, 600));
       setHighlightedButton(null);
       await new Promise(resolve => setTimeout(resolve, 400));
@@ -53,25 +58,27 @@ export function useMemoryGame(): UseMemoryGameReturn {
     
     setGameState('playing');
     setStatusMessage('今度はあなたの番です！同じ順番でクリックしてください');
-  }, []);
+  }, [playClick]);
 
   const startGame = useCallback(() => {
     console.log('🎮 記憶ゲーム開始');
+    playStart(); // 開始音を再生
     const newSequence = generateSequence(3); // レベル1は3つの数字から
     setSequence(newSequence);
     setUserSequence([]);
     setScore(0);
     setLevel(1);
     showSequence(newSequence);
-  }, [generateSequence, showSequence]);
+  }, [generateSequence, showSequence, playStart]);
 
   const nextLevel = useCallback(() => {
     console.log(`🎮 記憶ゲーム レベル ${level + 1} へ進む`);
+    playSuccess(); // レベルアップ時の成功音
     const newSequence = generateSequence(level + 2); // レベル1で3個、レベル2で4個...
     setSequence(newSequence);
     setUserSequence([]);
     showSequence(newSequence);
-  }, [level, generateSequence, showSequence]);
+  }, [level, generateSequence, showSequence, playSuccess]);
 
   const handleButtonClick = useCallback((buttonNumber: number) => {
     if (gameState !== 'playing' || isProcessingAnswer) return;
@@ -95,14 +102,23 @@ export function useMemoryGame(): UseMemoryGameReturn {
     }, 300);
 
     if (buttonNumber !== sequence[newUserSequence.length - 1]) {
-      // 間違い
+      // 間違い時の効果音
+      playIncorrect();
+      
       console.log('❌ 間違いです！');
       setGameState('finished');
       setStatusMessage(`間違いです！正解は: ${sequence.join(', ')}`);
+      
+      // ゲーム終了時の失敗音
+      setTimeout(() => playFail(), 300);
+      
       // スコア保存
       saveScore('memory', score).catch(console.error);
       return;
     }
+
+    // 正解時の効果音
+    playCorrect();
 
     if (newUserSequence.length === sequence.length) {
       // レベルクリア
@@ -116,7 +132,7 @@ export function useMemoryGame(): UseMemoryGameReturn {
         nextLevel();
       }, 1500);
     }
-  }, [gameState, userSequence, sequence, score, level, nextLevel, saveScore, isProcessingAnswer]);
+  }, [gameState, userSequence, sequence, score, level, nextLevel, saveScore, isProcessingAnswer, playCorrect, playIncorrect, playFail]);
 
   const resetGame = useCallback(() => {
     console.log('🔄 ゲームリセット');
