@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { GameState } from '../types/game';
-import { getRandomElement } from '../utils/random';
+import { GameState } from '@/types/game';
+import { getRandomElement } from '@/utils/random';
 
 interface TypingGameState {
   gameState: GameState;
