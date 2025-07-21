@@ -11,6 +11,7 @@ export default function MemoryGame() {
   const [score, setScore] = useState(0);
   const [level, setLevel] = useState(1);
   const [highlightedButton, setHighlightedButton] = useState<number | null>(null);
+  const [temporaryHighlight, setTemporaryHighlight] = useState<number | null>(null);
   const [statusMessage, setStatusMessage] = useState('');
   const { saveScore } = useGame();
 
@@ -60,6 +61,12 @@ export default function MemoryGame() {
   const handleButtonClick = useCallback((buttonNumber: number) => {
     if (gameState !== 'playing') return;
 
+    // 一時的に押されたボタンをハイライト
+    setTemporaryHighlight(buttonNumber);
+    setTimeout(() => {
+      setTemporaryHighlight(null);
+    }, 300); // 300ミリ秒後にハイライトを消す
+
     const newUserSequence = [...userSequence, buttonNumber];
     setUserSequence(newUserSequence);
 
@@ -107,6 +114,7 @@ export default function MemoryGame() {
     setScore(0);
     setLevel(1);
     setHighlightedButton(null);
+    setTemporaryHighlight(null);
     setStatusMessage('');
   };
 
@@ -146,8 +154,8 @@ export default function MemoryGame() {
                 className={`
                   w-20 h-20 bg-blue-500 text-white text-xl font-bold rounded-lg transition-all duration-200 shadow-lg
                   ${highlightedButton === number ? 'bg-yellow-400 scale-110 shadow-xl' : ''}
+                  ${temporaryHighlight === number ? 'bg-green-500 scale-110 shadow-xl' : ''}
                   ${gameState === 'playing' ? 'hover:bg-blue-600 cursor-pointer' : 'cursor-not-allowed'}
-                  ${userSequence.includes(number) && gameState === 'playing' ? 'bg-green-500' : ''}
                 `}
                 onClick={() => handleButtonClick(number)}
                 disabled={gameState !== 'playing'}
