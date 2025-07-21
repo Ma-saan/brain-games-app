@@ -4,7 +4,7 @@ import { useMemoryGame } from '../../../hooks/useMemoryGame';
 import { GameLayout } from '../../../components/layout/GameLayout';
 import { StatusDisplay } from '../../../components/ui/StatusDisplay';
 import { Button } from '../../../components/ui/Button';
-import NumberGrid from '../../../components/ui/NumberGrid';
+import { NumberGrid } from '../../../components/ui/NumberGrid';
 import { GameInstructions } from '../../../components/ui/GameInstructions';
 import { getMemoryRating } from '../../../utils/format';
 import { PageHeader } from '../../../components/layout/PageHeader';
