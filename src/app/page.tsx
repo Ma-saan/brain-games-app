@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import Link from "next/link";
 import { useGame } from './context/GameContext';
+import GameCard from '@/components/ui/GameCard';
+import Button from '@/components/ui/Button';
+import { GAME_CARDS } from '@/data/games';
 
 export default function Home() {
   const [username, setUsername] = useState('');
@@ -46,45 +49,6 @@ export default function Home() {
     }
   };
 
-  const games = [
-    { 
-      id: 'reaction' as const, 
-      title: '⚡ リアクションテスト', 
-      description: '画面が変わったら即座にクリック！',
-      color: 'bg-gradient-to-br from-yellow-400 to-orange-500'
-    },
-    { 
-      id: 'memory' as const, 
-      title: '🧠 記憶ゲーム', 
-      description: '光る順番を覚えてクリック！',
-      color: 'bg-gradient-to-br from-blue-400 to-blue-600'
-    },
-    { 
-      id: 'color' as const, 
-      title: '🎨 色判別', 
-      description: '文字の色と内容が一致するかを判断！',
-      color: 'bg-gradient-to-br from-purple-400 to-pink-500'
-    },
-    { 
-      id: 'math' as const, 
-      title: '🔢 計算', 
-      description: '制限時間内に計算問題を解こう！',
-      color: 'bg-gradient-to-br from-green-400 to-green-600'
-    },
-    { 
-      id: 'pattern' as const, 
-      title: '🔍 パターン認識', 
-      description: '規則性を見つけて答えを推測！',
-      color: 'bg-gradient-to-br from-indigo-400 to-purple-600'
-    },
-    { 
-      id: 'typing' as const, 
-      title: '⌨️ タイピング', 
-      description: 'できるだけ早く正確にタイピング！',
-      color: 'bg-gradient-to-br from-red-400 to-red-600'
-    }
-  ];
-
   console.log('🏠 Home画面レンダリング - 現在のユーザー:', currentUser);
 
   return (
@@ -120,16 +84,16 @@ export default function Home() {
               maxLength={20}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
             />
-            <button 
+            <Button 
               onClick={handleSetUser}
-              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+              variant="success"
             >
               設定
-            </button>
+            </Button>
             <Link href="/history">
-              <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+              <Button variant="info">
                 📊 履歴
-              </button>
+              </Button>
             </Link>
           </div>
           <div id="current-user" className="text-center mt-4 font-bold text-green-800">
@@ -138,16 +102,12 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {games.map((game) => (
-            <Link key={game.id} href={`/games/${game.id}`}>
-              <div className={`${game.color} text-white p-6 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 cursor-pointer`}>
-                <h3 className="text-xl font-bold mb-3">{game.title}</h3>
-                <p className="text-white/90 mb-4">{game.description}</p>
-                <div className="bg-white/20 rounded-lg px-3 py-1 text-sm font-medium">
-                  ベスト: {getBestScore(game.id)}
-                </div>
-              </div>
-            </Link>
+          {GAME_CARDS.map((game) => (
+            <GameCard
+              key={game.id}
+              game={game}
+              bestScore={getBestScore(game.id)}
+            />
           ))}
         </div>
       </div>
