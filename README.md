@@ -24,4 +24,4 @@
 3. ハイスコアを目指して挑戦！
 4. 履歴ページで自分の成績を確認
 
-ブラウザで https://brain-games-app.vercel.app にアクセスして今すぐプレイ！
+ブラウザで <a href="https://brain-games-app.vercel.app" target="_blank" rel="noopener noreferrer">https://brain-games-app.vercel.app</a> にアクセスして今すぐプレイ！
