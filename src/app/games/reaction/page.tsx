@@ -1,12 +1,13 @@
 'use client';
 
 import { useGame } from '../../context/GameContext';
-import { useReactionGame } from '@/hooks/useReactionGame';
-import GameLayout from '@/components/layout/GameLayout';
-import Button from '@/components/ui/Button';
-import GameResultDisplay from '@/components/ui/GameResultDisplay';
-import GameInstructions from '@/components/ui/GameInstructions';
-import { getReactionRating } from '@/utils/format';
+import { useReactionGame } from '../../../hooks/useReactionGame';
+import { PageHeader } from '../../../components/layout/PageHeader';
+import { GameLayout } from '../../../components/layout/GameLayout';
+import { Button } from '../../../components/ui/Button';
+import { GameResultDisplay } from '../../../components/ui/GameResultDisplay';
+import { GameInstructions } from '../../../components/ui/GameInstructions';
+import { getReactionRating } from '../../../utils/format';
 
 export default function ReactionGamePage() {
   const { currentUser } = useGame();
@@ -15,7 +16,6 @@ export default function ReactionGamePage() {
     reactionTime,
     handleClick,
     resetGame
-    // gameOverReasonは未使用なので削除
   } = useReactionGame();
 
   const getBackgroundColor = () => {
@@ -52,56 +52,59 @@ export default function ReactionGamePage() {
   ];
 
   return (
-    <GameLayout
-      title="リアクションテスト"
-      subtitle="画面が緑になったら即座にクリック！"
-      icon="⚡"
-      bgColor="bg-gradient-to-br from-gray-100 to-gray-200"
-      textColor="text-gray-800"
-    >
-      <div className="text-center mb-4">
-        <p className="text-sm text-blue-600">現在のユーザー: {currentUser}</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 py-8 px-4">
+      <div className="max-w-4xl mx-auto">
+        <PageHeader
+          title="⚡ リアクションテスト"
+          description="画面が緑になったら即座にクリック！"
+          backLink="/"
+        />
 
-      <div 
-        className={`${getBackgroundColor()} rounded-lg p-16 text-center cursor-pointer transition-colors duration-200 min-h-[300px] flex items-center justify-center`}
-        onClick={handleClick}
-      >
-        <div className="text-white text-2xl font-bold">
-          {getMessage()}
-        </div>
-      </div>
+        <GameLayout>
+          <div className="text-center mb-4">
+            <p className="text-sm text-blue-600">現在のユーザー: {currentUser}</p>
+          </div>
 
-      <div className="text-center mt-8 space-y-4">          
-        {(gameState === 'clicked' || gameState === 'too-early') && (
-          <Button
-            onClick={resetGame}
-            variant="success"
-            size="large"
+          <div 
+            className={`${getBackgroundColor()} rounded-lg p-16 text-center cursor-pointer transition-colors duration-200 min-h-[300px] flex items-center justify-center`}
+            onClick={handleClick}
           >
-            もう一度
-          </Button>
-        )}
+            <div className="text-white text-2xl font-bold">
+              {getMessage()}
+            </div>
+          </div>
 
-        {reactionTime && gameState === 'clicked' && (
-          <GameResultDisplay
-            result={{
-              score: reactionTime,
-              gameOverReason: null
-            }}
-            onRestart={resetGame}
-            getRating={getReactionRating}
-          />
-        )}
+          <div className="text-center mt-8 space-y-4">          
+            {(gameState === 'clicked' || gameState === 'too-early') && (
+              <Button
+                onClick={resetGame}
+                variant="success"
+                size="large"
+              >
+                もう一度
+              </Button>
+            )}
+
+            {reactionTime && gameState === 'clicked' && (
+              <GameResultDisplay
+                title="結果"
+                score={reactionTime}
+                rating={getReactionRating(reactionTime)}
+                onRestart={resetGame}
+                restartButtonColor="bg-green-500 hover:bg-green-600"
+              />
+            )}
+          </div>
+        </GameLayout>
+
+        <GameInstructions
+          instructions={instructions}
+          bgColor="bg-yellow-50"
+          textColor="text-yellow-700"
+          borderColor="border-yellow-200"
+          className="mt-8"
+        />
       </div>
-
-      <GameInstructions
-        instructions={instructions}
-        bgColor="bg-yellow-50"
-        textColor="text-yellow-700"
-        borderColor="border-yellow-200"
-        className="mt-8"
-      />
-    </GameLayout>
+    </div>
   );
 }
