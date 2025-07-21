@@ -11,6 +11,9 @@ export default function ColorGame() {
   const [currentWord, setCurrentWord] = useState('');
   const [currentColor, setCurrentColor] = useState('');
   const [isCorrect, setIsCorrect] = useState(false);
+  const [isProcessingAnswer, setIsProcessingAnswer] = useState(false);
+  const [gameMode, setGameMode] = useState<'time' | 'mistake'>('time');
+  const [gameOverReason, setGameOverReason] = useState<'time' | 'mistake' | null>(null);
   const { saveScore } = useGame();
 
 
@@ -26,22 +29,49 @@ export default function ColorGame() {
     setIsCorrect(wordIndex === colorIndex);
   }, []);
 
-  const startGame = useCallback(() => {
+  const startGame = useCallback((mode: 'time' | 'mistake') => {
     setGameState('playing');
     setScore(0);
     setTimeLeft(30);
+    setGameMode(mode);
+    setGameOverReason(null);
     generateQuestion();
   }, [generateQuestion]);
 
   const handleAnswer = useCallback((userAnswer: boolean) => {
-    if (gameState !== 'playing') return;
+    if (gameState !== 'playing' || isProcessingAnswer) return;
 
-    if (userAnswer === isCorrect) {
-      setScore(score + 1);
-    }
+    // 連打防止のため回答処理中フラグを立てる
+    setIsProcessingAnswer(true);
+
+    const isAnswerCorrect = userAnswer === isCorrect;
     
-    generateQuestion();
-  }, [gameState, isCorrect, score, generateQuestion]);
+    if (isAnswerCorrect) {
+      setScore(prevScore => prevScore + 1);
+      // 正解の場合は次の問題へ
+      generateQuestion();
+      // 少し遅延して回答処理フラグを解除（連打防止）
+      setTimeout(() => {
+        setIsProcessingAnswer(false);
+      }, 300);
+    } else {
+      // 間違えた場合の処理
+      if (gameMode === 'mistake') {
+        // 間違えたら終了モードの場合
+        setGameState('finished');
+        setGameOverReason('mistake');
+        // スコア保存
+        saveScore('color', score).catch(console.error);
+      } else {
+        // 時間制限モードの場合は続行
+        generateQuestion();
+        // 少し遅延して回答処理フラグを解除（連打防止）
+        setTimeout(() => {
+          setIsProcessingAnswer(false);
+        }, 300);
+      }
+    }
+  }, [gameState, isCorrect, isProcessingAnswer, score, generateQuestion, gameMode, saveScore]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -52,6 +82,7 @@ export default function ColorGame() {
       }, 1000);
     } else if (timeLeft === 0) {
       setGameState('finished');
+      setGameOverReason('time');
       // スコア保存
       saveScore('color', score).catch(console.error);
     }
@@ -67,6 +98,7 @@ export default function ColorGame() {
     setTimeLeft(30);
     setCurrentWord('');
     setCurrentColor('');
+    setGameOverReason(null);
   };
 
   const getRating = (score: number) => {
@@ -77,6 +109,15 @@ export default function ColorGame() {
     if (score >= 5) return '💪 練習すればもっと良くなる！';
     return '🤔 もう一度チャレンジ！';
   };
+
+  const getGameOverText = () => {
+    if (gameOverReason === 'time') {
+      return '時間切れ！';
+    } else if (gameOverReason === 'mistake') {
+      return '間違えました！';
+    }
+    return 'ゲーム終了！';
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 py-8 px-4">
@@ -98,18 +139,31 @@ export default function ColorGame() {
               <div className="text-lg">
                 <span className="font-bold text-purple-600">スコア:</span> {score}
               </div>
+              {gameState === 'playing' && (
+                <div className="text-lg">
+                  <span className="font-bold text-purple-600">モード:</span> {gameMode === 'time' ? '時間制限' : '間違えたら終了'}
+                </div>
+              )}
             </div>
           </div>
 
           {gameState === 'waiting' && (
             <div className="text-center">
-              <p className="text-lg mb-6">文字の色と内容が一致するかを30秒間で判断しよう！</p>
-              <button
-                onClick={startGame}
-                className="px-6 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-lg font-medium"
-              >
-                ゲーム開始
-              </button>
+              <p className="text-lg mb-6">文字の色と内容が一致するかを判断しよう！</p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <button
+                  onClick={() => startGame('time')}
+                  className="px-6 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-lg font-medium w-full sm:w-auto"
+                >
+                  30秒タイムアタック
+                </button>
+                <button
+                  onClick={() => startGame('mistake')}
+                  className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-lg font-medium w-full sm:w-auto"
+                >
+                  間違えたら終了
+                </button>
+              </div>
             </div>
           )}
 
@@ -125,13 +179,15 @@ export default function ColorGame() {
               <div className="flex justify-center gap-4">
                 <button
                   onClick={() => handleAnswer(true)}
-                  className="px-8 py-4 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-xl font-medium"
+                  disabled={isProcessingAnswer}
+                  className={`px-8 py-4 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-xl font-medium ${isProcessingAnswer ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
                   ⭕ はい
                 </button>
                 <button
                   onClick={() => handleAnswer(false)}
-                  className="px-8 py-4 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-xl font-medium"
+                  disabled={isProcessingAnswer}
+                  className={`px-8 py-4 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-xl font-medium ${isProcessingAnswer ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
                   ❌ いいえ
                 </button>
@@ -141,7 +197,7 @@ export default function ColorGame() {
 
           {gameState === 'finished' && (
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-purple-800 mb-4">ゲーム終了！</h2>
+              <h2 className="text-2xl font-bold text-purple-800 mb-4">{getGameOverText()}</h2>
               <p className="text-3xl font-bold text-purple-600 mb-2">{score}問正解</p>
               <p className="text-lg text-purple-700 mb-6">{getRating(score)}</p>
               <button
@@ -160,7 +216,8 @@ export default function ColorGame() {
             <li>• 表示される文字の「色」と「内容」を確認</li>
             <li>• 一致していれば「はい」、違えば「いいえ」をクリック</li>
             <li>• 例：赤い色の「赤」→一致、青い色の「赤」→不一致</li>
-            <li>• 30秒間でできるだけ多く正解しよう！</li>
+            <li>• 「30秒タイムアタック」: 30秒間でできるだけ多く正解しよう！</li>
+            <li>• 「間違えたら終了」: 1回でも間違えるとゲームオーバー！</li>
           </ul>
         </div>
       </div>
