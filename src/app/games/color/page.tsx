@@ -12,7 +12,6 @@ export default function ColorGame() {
   const [currentColor, setCurrentColor] = useState('');
   const [isCorrect, setIsCorrect] = useState(false);
   const [isProcessingAnswer, setIsProcessingAnswer] = useState(false);
-  const [gameMode, setGameMode] = useState<'time' | 'mistake'>('time');
   const [gameOverReason, setGameOverReason] = useState<'time' | 'mistake' | null>(null);
   const { saveScore } = useGame();
 
@@ -29,11 +28,10 @@ export default function ColorGame() {
     setIsCorrect(wordIndex === colorIndex);
   }, []);
 
-  const startGame = useCallback((mode: 'time' | 'mistake') => {
+  const startGame = useCallback(() => {
     setGameState('playing');
     setScore(0);
     setTimeLeft(30);
-    setGameMode(mode);
     setGameOverReason(null);
     generateQuestion();
   }, [generateQuestion]);
@@ -55,23 +53,13 @@ export default function ColorGame() {
         setIsProcessingAnswer(false);
       }, 300);
     } else {
-      // 間違えた場合の処理
-      if (gameMode === 'mistake') {
-        // 間違えたら終了モードの場合
-        setGameState('finished');
-        setGameOverReason('mistake');
-        // スコア保存
-        saveScore('color', score).catch(console.error);
-      } else {
-        // 時間制限モードの場合は続行
-        generateQuestion();
-        // 少し遅延して回答処理フラグを解除（連打防止）
-        setTimeout(() => {
-          setIsProcessingAnswer(false);
-        }, 300);
-      }
+      // 間違えたら終了
+      setGameState('finished');
+      setGameOverReason('mistake');
+      // スコア保存
+      saveScore('color', score).catch(console.error);
     }
-  }, [gameState, isCorrect, isProcessingAnswer, score, generateQuestion, gameMode, saveScore]);
+  }, [gameState, isCorrect, isProcessingAnswer, score, generateQuestion, saveScore]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -139,31 +127,21 @@ export default function ColorGame() {
               <div className="text-lg">
                 <span className="font-bold text-purple-600">スコア:</span> {score}
               </div>
-              {gameState === 'playing' && (
-                <div className="text-lg">
-                  <span className="font-bold text-purple-600">モード:</span> {gameMode === 'time' ? '時間制限' : '間違えたら終了'}
-                </div>
-              )}
             </div>
           </div>
 
           {gameState === 'waiting' && (
             <div className="text-center">
-              <p className="text-lg mb-6">文字の色と内容が一致するかを判断しよう！</p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <button
-                  onClick={() => startGame('time')}
-                  className="px-6 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-lg font-medium w-full sm:w-auto"
-                >
-                  30秒タイムアタック
-                </button>
-                <button
-                  onClick={() => startGame('mistake')}
-                  className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-lg font-medium w-full sm:w-auto"
-                >
-                  間違えたら終了
-                </button>
-              </div>
+              <p className="text-lg mb-6">
+                文字の色と内容が一致するかを判断しよう！<br />
+                <span className="text-red-600 font-bold">間違えたらゲームオーバー！</span> かつ <span className="text-blue-600 font-bold">制限時間は30秒！</span>
+              </p>
+              <button
+                onClick={startGame}
+                className="px-6 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-lg font-medium"
+              >
+                ゲーム開始
+              </button>
             </div>
           )}
 
@@ -216,8 +194,8 @@ export default function ColorGame() {
             <li>• 表示される文字の「色」と「内容」を確認</li>
             <li>• 一致していれば「はい」、違えば「いいえ」をクリック</li>
             <li>• 例：赤い色の「赤」→一致、青い色の「赤」→不一致</li>
-            <li>• 「30秒タイムアタック」: 30秒間でできるだけ多く正解しよう！</li>
-            <li>• 「間違えたら終了」: 1回でも間違えるとゲームオーバー！</li>
+            <li>• <span className="font-bold">制限時間30秒以内</span>にできるだけ多く正解しよう！</li>
+            <li>• <span className="font-bold">1回でも間違えるとゲームオーバー</span>になるので注意！</li>
           </ul>
         </div>
       </div>
