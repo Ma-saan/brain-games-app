@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { GameState } from '@/types/game';
 import { shuffleArray } from '@/utils/random';
+import { useGameAudio } from '@/hooks/useAudioPlayer';
 
 interface Pattern {
   sequence: number[];
@@ -30,6 +31,9 @@ export const usePatternGame = (saveScore?: (game: 'pattern', score: number) => P
   const [score, setScore] = useState(0);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [patterns, setPatterns] = useState<Pattern[]>([]);
+
+  // 効果音機能を追加
+  const { playCorrect, playIncorrect, playStart, playSuccess, playFail } = useGameAudio();
 
   // パターン生成関数群
   const generateArithmeticSequence = useCallback(() => {
@@ -121,33 +125,48 @@ export const usePatternGame = (saveScore?: (game: 'pattern', score: number) => P
 
   // ゲーム開始
   const startGame = useCallback(() => {
+    playStart(); // 開始音を再生
     const newPatterns = generateAllPatterns();
     setGameState('playing');
     setScore(0);
     setCurrentQuestion(0);
     setPatterns(newPatterns);
-  }, [generateAllPatterns]);
+  }, [generateAllPatterns, playStart]);
 
   // 回答処理
   const handleAnswer = useCallback((answer: number) => {
     if (gameState !== 'playing' || !patterns[currentQuestion]) return;
     
     const isCorrect = answer === patterns[currentQuestion].correct;
+    
     if (isCorrect) {
+      playCorrect(); // 正解時の効果音
       setScore(prevScore => prevScore + POINTS_PER_CORRECT);
+    } else {
+      playIncorrect(); // 不正解時の効果音
     }
     
     if (currentQuestion < TOTAL_QUESTIONS - 1) {
       setCurrentQuestion(prevQuestion => prevQuestion + 1);
     } else {
       setGameState('finished');
+      
+      // ゲーム終了時の効果音（スコアに応じて）
+      const finalScore = score + (isCorrect ? POINTS_PER_CORRECT : 0);
+      setTimeout(() => {
+        if (finalScore >= 70) {
+          playSuccess(); // 高スコア時は成功音
+        } else {
+          playFail(); // 低スコア時は失敗音
+        }
+      }, 300);
+      
       // スコア保存
       if (saveScore) {
-        const finalScore = score + (isCorrect ? POINTS_PER_CORRECT : 0);
         saveScore('pattern', finalScore).catch(console.error);
       }
     }
-  }, [gameState, patterns, currentQuestion, score, saveScore]);
+  }, [gameState, patterns, currentQuestion, score, saveScore, playCorrect, playIncorrect, playSuccess, playFail]);
 
   // ゲームリセット
   const resetGame = useCallback(() => {
