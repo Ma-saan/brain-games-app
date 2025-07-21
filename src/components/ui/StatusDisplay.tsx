@@ -11,7 +11,7 @@ interface StatusDisplayProps {
   className?: string;
 }
 
-export default function StatusDisplay({ items, className = '' }: StatusDisplayProps) {
+export function StatusDisplay({ items, className = '' }: StatusDisplayProps) {
   return (
     <div className={`flex justify-center gap-4 md:gap-8 mb-4 flex-wrap ${className}`}>
       {items.map((item, index) => (
