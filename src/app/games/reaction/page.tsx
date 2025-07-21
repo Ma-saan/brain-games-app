@@ -14,8 +14,8 @@ export default function ReactionGamePage() {
     gameState,
     reactionTime,
     handleClick,
-    resetGame,
-    gameOverReason
+    resetGame
+    // gameOverReasonは未使用なので削除
   } = useReactionGame();
 
   const getBackgroundColor = () => {
