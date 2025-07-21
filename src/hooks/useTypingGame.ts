@@ -37,7 +37,7 @@ const WORD_LIST = [
   'amazing', 'wonderful', 'fantastic', 'brilliant', 'excellent'
 ];
 
-export const useTypingGame = (saveScore?: (gameType: string, score: number) => Promise<void>) => {
+export const useTypingGame = (saveScore?: (game: 'typing', score: number) => Promise<boolean>) => {
   const [gameState, setGameState] = useState<GameState>('waiting');
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
