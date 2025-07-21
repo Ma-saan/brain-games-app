@@ -5,30 +5,28 @@ import Link from 'next/link';
 
 interface PageHeaderProps {
   title: string;
-  subtitle?: string;
-  icon?: string;
-  backUrl?: string;
+  description?: string;
+  backLink?: string;
   backText?: string;
   textColor?: string;
 }
 
-export default function PageHeader({
+export function PageHeader({
   title,
-  subtitle,
-  icon = '',
-  backUrl = '/',
-  backText = 'メインメニューに戻る',
+  description,
+  backLink = '/',
+  backText = '← メインメニューに戻る',
   textColor = 'text-blue-800'
 }: PageHeaderProps) {
   return (
     <div className="text-center mb-8">
-      <Link href={backUrl} className="inline-block mb-4 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
-        ← {backText}
+      <Link href={backLink} className="inline-block mb-4 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+        {backText}
       </Link>
       <h1 className={`text-3xl font-bold ${textColor} mb-2`}>
-        {icon} {title}
+        {title}
       </h1>
-      {subtitle && <p className={`${textColor.replace('800', '600')}`}>{subtitle}</p>}
+      {description && <p className={`${textColor.replace('800', '600')}`}>{description}</p>}
     </div>
   );
 }
