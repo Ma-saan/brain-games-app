@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { GameCardInfo } from '@/types/game';
+import { GameCardInfo } from '../../../types/game';
 
 interface GameCardProps {
   game: GameCardInfo;
@@ -10,7 +10,7 @@ interface GameCardProps {
   className?: string;
 }
 
-export default function GameCard({ game, bestScore, className = '' }: GameCardProps) {
+export function GameCard({ game, bestScore, className = '' }: GameCardProps) {
   const { id, title, description, color } = game;
   
   return (
