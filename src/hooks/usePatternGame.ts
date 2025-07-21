@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { GameState } from '../types/game';
-import { shuffleArray } from '../utils/random';
+import { GameState } from '@/types/game';
+import { shuffleArray } from '@/utils/random';
 
 interface Pattern {
   sequence: number[];
