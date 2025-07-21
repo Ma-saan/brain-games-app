@@ -30,7 +30,10 @@ export default function ReactionGame() {
   const handleClick = useCallback(async () => {
     console.log('🖱️ クリックされました - 現在の状態:', gameState);
     
-    if (gameState === 'ready') {
+    if (gameState === 'waiting') {
+      // 待機状態でクリックされたらゲーム開始
+      startGame();
+    } else if (gameState === 'ready') {
       console.log('❌ フライング！');
       setGameState('too-early');
       if (timeoutId) {
@@ -54,7 +57,7 @@ export default function ReactionGame() {
         console.error('❌ スコア保存エラー:', error);
       }
     }
-  }, [gameState, startTime, timeoutId, saveScore, currentUser]);
+  }, [gameState, startTime, timeoutId, saveScore, currentUser, startGame]);
 
   const resetGame = useCallback(() => {
     console.log('🔄 ゲームリセット');
@@ -125,16 +128,7 @@ export default function ReactionGame() {
           </div>
         </div>
 
-        <div className="text-center space-y-4">
-          {gameState === 'waiting' && (
-            <button
-              onClick={startGame}
-              className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-lg font-medium"
-            >
-              ゲーム開始
-            </button>
-          )}
-          
+        <div className="text-center space-y-4">          
           {(gameState === 'clicked' || gameState === 'too-early') && (
             <button
               onClick={resetGame}
@@ -162,7 +156,7 @@ export default function ReactionGame() {
         <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <h3 className="font-bold text-yellow-800 mb-2">🎯 遊び方</h3>
           <ul className="text-yellow-700 text-sm space-y-1">
-            <li>• 「ゲーム開始」ボタンをクリック</li>
+            <li>• 青い画面をクリックしてゲームを開始</li>
             <li>• 画面が赤になったら待機</li>
             <li>• 緑になったら即座にクリック！</li>
             <li>• 早すぎるとフライングになります</li>
