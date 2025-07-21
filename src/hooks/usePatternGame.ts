@@ -25,7 +25,7 @@ interface PatternGameActions {
 const TOTAL_QUESTIONS = 10;
 const POINTS_PER_CORRECT = 10;
 
-export const usePatternGame = (saveScore?: (gameType: string, score: number) => Promise<void>) => {
+export const usePatternGame = (saveScore?: (game: 'pattern', score: number) => Promise<boolean>) => {
   const [gameState, setGameState] = useState<GameState>('waiting');
   const [score, setScore] = useState(0);
   const [currentQuestion, setCurrentQuestion] = useState(0);
