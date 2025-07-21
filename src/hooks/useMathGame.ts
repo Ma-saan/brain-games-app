@@ -26,7 +26,7 @@ const GAME_DURATION = 60; // 60秒
 const LEVEL_UP_MULTIPLIER = 50; // レベル × 50点でレベルアップ
 const SCORE_PER_CORRECT = 10; // 正解時の基本点数
 
-export const useMathGame = (saveScore?: (gameType: string, score: number) => Promise<void>) => {
+export const useMathGame = (saveScore?: (game: 'math', score: number) => Promise<boolean>) => {
   const [gameState, setGameState] = useState<GameState>('waiting');
   const [score, setScore] = useState(0);
   const [level, setLevel] = useState(1);
