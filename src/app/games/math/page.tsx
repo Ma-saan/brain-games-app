@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useGame } from '../../context/GameContext';
 import { useMathGame } from '../../../hooks/useMathGame';
 import { PageHeader } from '../../../components/layout/PageHeader';
