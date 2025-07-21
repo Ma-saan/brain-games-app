@@ -1,5 +1,6 @@
 'use client';
 
+import { useGame } from '../../context/GameContext';
 import { useTypingGame } from '../../../hooks/useTypingGame';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { GameLayout } from '../../../components/layout/GameLayout';
@@ -8,6 +9,7 @@ import { StatusDisplay } from '../../../components/ui/StatusDisplay';
 import { GameInstructions } from '../../../components/ui/GameInstructions';
 
 export default function TypingGame() {
+  const { saveScore } = useGame();
   const {
     gameState,
     score,
@@ -19,7 +21,7 @@ export default function TypingGame() {
     resetGame,
     getStats,
     getCharacterData
-  } = useTypingGame();
+  } = useTypingGame(saveScore);
 
   const { wpm, accuracy } = getStats();
 
