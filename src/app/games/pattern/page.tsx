@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { usePatternGame } from '../../../hooks/usePatternGame';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { GameLayout } from '../../../components/layout/GameLayout';
