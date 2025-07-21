@@ -11,7 +11,7 @@ interface NumberGridProps {
   className?: string;
 }
 
-export default function NumberGrid({
+export function NumberGrid({
   count = 9,
   highlightedNumber,
   temporaryHighlight,
