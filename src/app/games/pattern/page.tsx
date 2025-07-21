@@ -1,13 +1,13 @@
 'use client';
 
 import { useGame } from '../../context/GameContext';
-import { usePatternGame } from '../../../hooks/usePatternGame';
-import { PageHeader } from '../../../components/layout/PageHeader';
-import { GameLayout } from '../../../components/layout/GameLayout';
-import { Button } from '../../../components/ui/Button';
-import { StatusDisplay } from '../../../components/ui/StatusDisplay';
-import { GameResultDisplay } from '../../../components/ui/GameResultDisplay';
-import { GameInstructions } from '../../../components/ui/GameInstructions';
+import { usePatternGame } from '@/hooks/usePatternGame';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { GameLayout } from '@/components/layout/GameLayout';
+import { Button } from '@/components/ui/Button';
+import { StatusDisplay } from '@/components/ui/StatusDisplay';
+import { GameResultDisplay } from '@/components/ui/GameResultDisplay';
+import { GameInstructions } from '@/components/ui/GameInstructions';
 
 export default function PatternGame() {
   const { saveScore } = useGame();
