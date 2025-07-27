@@ -16,8 +16,6 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-2xl text-green-600 mb-4">🔐 安全な環境を準備中...</div>
-          <div className="text-lg text-green-500">匿名認証を初期化しています</div>
           <div className="mt-4">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
           </div>
@@ -61,9 +59,6 @@ export default function Home() {
           <p className="text-green-600 text-lg">
             様々なゲームで脳を鍛えよう！
           </p>
-          <div className="text-sm text-green-500 mt-2">
-            🔒 安全な匿名認証で保護されています
-          </div>
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
