@@ -39,28 +39,21 @@ export default function AuthTest() {
   const signInWithGoogle = async () => {
     try {
       setError(null)
-      // より明示的なリダイレクト設定
-      const redirectTo = `${window.location.protocol}//${window.location.host}/auth-test`
       
-      console.log('Redirect URL:', redirectTo)
+      console.log('🚀 Google認証開始 - Supabaseデフォルトフロー使用')
       
+      // ❌ 削除: redirectToは指定しない（Supabaseが自動処理）
       const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: redirectTo,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          }
-        }
+        provider: 'google'
+        // redirectToは指定しない - Supabaseが自動的に処理
       })
       
       if (error) throw error
       
-      console.log('Auth response:', data)
+      console.log('✅ 認証リクエスト成功:', data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'ログインに失敗しました')
-      console.error('Google sign in error:', err)
+      console.error('❌ Google sign in error:', err)
     }
   }
 
@@ -84,17 +77,11 @@ export default function AuthTest() {
 
   return (
     <div className="p-6 bg-white border rounded-lg shadow-sm">
-      <h2 className="text-xl font-bold mb-4">🧪 Google認証テスト（改良版）</h2>
+      <h2 className="text-xl font-bold mb-4">🧪 Google認証テスト（修正版）</h2>
       
       {error && (
         <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
           <strong>エラー:</strong> {error}
-          <details className="mt-2 text-xs">
-            <summary>デバッグ情報</summary>
-            <p>現在のURL: {window.location.href}</p>
-            <p>プロトコル: {window.location.protocol}</p>
-            <p>ホスト: {window.location.host}</p>
-          </details>
         </div>
       )}
 
@@ -130,24 +117,24 @@ export default function AuthTest() {
               <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
               <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
-            Googleでログイン（デバッグ版）
+            Googleでログイン（修正版）
           </button>
           
-          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
-            <h4 className="font-semibold mb-2">🔧 トラブルシューティング</h4>
-            <ul className="space-y-1 text-xs">
-              <li>• 開発サーバーが localhost:3000 で起動しているか確認</li>
-              <li>• Google Cloud Console のリダイレクトURI設定を確認</li>
-              <li>• Supabase Dashboard の Google 認証設定を確認</li>
-              <li>• ブラウザのコンソールでエラーを確認</li>
+          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded text-sm">
+            <h4 className="font-semibold mb-2 text-green-800">🔧 修正内容</h4>
+            <ul className="space-y-1 text-xs text-green-700">
+              <li>✅ redirectToを削除（Supabaseが自動処理）</li>
+              <li>✅ Googleのコールバック先: Supabaseエンドポイント</li>
+              <li>✅ 認証後: 自動的にアプリにリダイレクト</li>
             </ul>
           </div>
         </div>
       )}
       
-      <div className="mt-6 text-xs text-gray-500">
-        <p>このテストコンポーネントでGoogle認証の動作を確認できます。</p>
-        <p>リダイレクト先: {window.location.protocol}//{window.location.host}/auth-test</p>
+      <div className="mt-6 text-xs text-gray-500 space-y-1">
+        <p><strong>正しい認証フロー:</strong></p>
+        <p>1. Google認証 → 2. Supabaseコールback → 3. アプリに戻る</p>
+        <p><strong>Supabaseコールバック:</strong> https://seduzpxbvnydzgnguroe.supabase.co/auth/v1/callback</p>
       </div>
     </div>
   )
