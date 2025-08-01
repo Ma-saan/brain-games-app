@@ -15,10 +15,16 @@ export function formatMilliseconds(ms: number | null): string {
 /**
  * スコアを「〇〇点」形式に変換
  * @param score スコア
+ * @param gameType ゲームタイプ（オプション）
  * @returns フォーマットされた文字列
  */
-export function formatScore(score: number | null): string {
+export function formatScore(score: number | null, gameType?: string): string {
   if (score === null) return '未プレイ';
+  
+  if (gameType === 'reaction') {
+    return `${score}ms`;
+  }
+  
   return `${score}点`;
 }
 
