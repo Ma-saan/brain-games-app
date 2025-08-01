@@ -3,16 +3,20 @@
 import { useState } from 'react';
 import Link from "next/link";
 import { useGame } from './context/GameContext';
+import { useAuth } from '@/hooks/useAuth';
 import { GameCard } from '@/components/ui/GameCard';
 import { Button } from '@/components/ui/Button';
+import { AuthButton } from '@/components/auth/AuthButton';
+import { NicknameSetup } from '@/components/auth/NicknameSetup';
 import { GAME_CARDS } from '@/data/games';
 
 export default function Home() {
   const [username, setUsername] = useState('');
   const { currentUser, setCurrentUser, getBestScore, isReady } = useGame();
+  const { isAuthenticated, isFirstTimeUser, loading: authLoading } = useAuth();
 
   // 初期化中はローディング表示
-  if (!isReady) {
+  if (!isReady || authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center">
         <div className="text-center">
@@ -20,6 +24,20 @@ export default function Home() {
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // 初回ユーザーのニックネーム設定画面
+  if (isFirstTimeUser) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center">
+        <NicknameSetup 
+          onComplete={() => {
+            // プロフィール作成完了後、画面をリフレッシュ
+            window.location.reload();
+          }}
+        />
       </div>
     );
   }
@@ -63,36 +81,71 @@ export default function Home() {
 
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <div className="flex flex-wrap items-center gap-4 justify-center">
-            <label htmlFor="username" className="text-green-800 font-medium">
-              👤 ユーザー名:
-            </label>
-            <input
-              type="text"
-              id="username"
-              value={username}
-              onChange={(e) => {
-                setUsername(e.target.value);
-                console.log('📝 入力変更:', e.target.value);
-              }}
-              onKeyPress={handleKeyPress}
-              placeholder="名前を入力してください"
-              maxLength={20}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-            />
-            <Button 
-              onClick={handleSetUser}
-              variant="success"
-            >
-              設定
-            </Button>
+            {/* 認証状態に応じた表示 */}
+            {isAuthenticated ? (
+              <>
+                <AuthButton />
+                <Link href="/profile">
+                  <Button variant="info">
+                    👤 プロフィール
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              <>
+                <label htmlFor="username" className="text-green-800 font-medium">
+                  👤 ユーザー名 (ゲスト):
+                </label>
+                <input
+                  type="text"
+                  id="username"
+                  value={username}
+                  onChange={(e) => {
+                    setUsername(e.target.value);
+                    console.log('📝 入力変更:', e.target.value);
+                  }}
+                  onKeyPress={handleKeyPress}
+                  placeholder="名前を入力してください"
+                  maxLength={20}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+                <Button 
+                  onClick={handleSetUser}
+                  variant="success"
+                >
+                  設定
+                </Button>
+                <div className="text-sm text-gray-600 hidden md:block">
+                  または
+                </div>
+                <AuthButton />
+              </>
+            )}
+            
             <Link href="/history">
               <Button variant="info">
                 📊 履歴
               </Button>
             </Link>
           </div>
-          <div id="current-user" className="text-center mt-4 font-bold text-green-800">
-            現在のユーザー: {currentUser}
+          
+          {/* ユーザー情報表示 */}
+          <div id="current-user" className="text-center mt-4">
+            {isAuthenticated ? (
+              <div className="text-green-800">
+                <span className="font-bold">認証ユーザーとしてログイン中</span>
+                <p className="text-sm text-gray-600 mt-1">
+                  スコアが自動保存されます
+                </p>
+              </div>
+            ) : (
+              <div className="text-green-800">
+                <span className="font-bold">現在のユーザー (ゲスト): {currentUser}</span>
+                <p className="text-sm text-gray-600 mt-1">
+                  ログインするとスコアが永続保存されます
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
