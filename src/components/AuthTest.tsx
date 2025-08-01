@@ -39,13 +39,25 @@ export default function AuthTest() {
   const signInWithGoogle = async () => {
     try {
       setError(null)
-      const { error } = await supabase.auth.signInWithOAuth({
+      // より明示的なリダイレクト設定
+      const redirectTo = `${window.location.protocol}//${window.location.host}/auth-test`
+      
+      console.log('Redirect URL:', redirectTo)
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}`
+          redirectTo: redirectTo,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         }
       })
+      
       if (error) throw error
+      
+      console.log('Auth response:', data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'ログインに失敗しました')
       console.error('Google sign in error:', err)
@@ -72,11 +84,17 @@ export default function AuthTest() {
 
   return (
     <div className="p-6 bg-white border rounded-lg shadow-sm">
-      <h2 className="text-xl font-bold mb-4">🧪 Google認証テスト</h2>
+      <h2 className="text-xl font-bold mb-4">🧪 Google認証テスト（改良版）</h2>
       
       {error && (
         <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-          エラー: {error}
+          <strong>エラー:</strong> {error}
+          <details className="mt-2 text-xs">
+            <summary>デバッグ情報</summary>
+            <p>現在のURL: {window.location.href}</p>
+            <p>プロトコル: {window.location.protocol}</p>
+            <p>ホスト: {window.location.host}</p>
+          </details>
         </div>
       )}
 
@@ -89,6 +107,7 @@ export default function AuthTest() {
               <p><strong>メール:</strong> {user.email}</p>
               <p><strong>名前:</strong> {user.user_metadata?.name || '未設定'}</p>
               <p><strong>プロバイダー:</strong> {user.app_metadata?.provider}</p>
+              <p><strong>作成日:</strong> {new Date(user.created_at).toLocaleString()}</p>
             </div>
           </div>
           <button
@@ -111,14 +130,24 @@ export default function AuthTest() {
               <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
               <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
-            Googleでログイン
+            Googleでログイン（デバッグ版）
           </button>
+          
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
+            <h4 className="font-semibold mb-2">🔧 トラブルシューティング</h4>
+            <ul className="space-y-1 text-xs">
+              <li>• 開発サーバーが localhost:3000 で起動しているか確認</li>
+              <li>• Google Cloud Console のリダイレクトURI設定を確認</li>
+              <li>• Supabase Dashboard の Google 認証設定を確認</li>
+              <li>• ブラウザのコンソールでエラーを確認</li>
+            </ul>
+          </div>
         </div>
       )}
       
       <div className="mt-6 text-xs text-gray-500">
         <p>このテストコンポーネントでGoogle認証の動作を確認できます。</p>
-        <p>成功すればSupabase Dashboardの設定は正しく完了しています。</p>
+        <p>リダイレクト先: {window.location.protocol}//{window.location.host}/auth-test</p>
       </div>
     </div>
   )
