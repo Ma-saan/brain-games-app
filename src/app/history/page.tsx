@@ -2,11 +2,22 @@
 
 import Link from 'next/link';
 import { useGame } from '../context/GameContext';
-import { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+
+interface AllUserScore {
+  username: string;
+  gameType: string;
+  score: number;
+  isAuth: boolean;
+}
 
 export default function HistoryPage() {
-  const { userScores, currentUser, getCurrentUserScores } = useGame();
+  const { userScores, currentUser, getCurrentUserScores, isAuthenticated } = useGame();
+  const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<'personal' | 'rankings'>('personal');
+  const [allScores, setAllScores] = useState<AllUserScore[]>([]);
   
   const gameNames = {
     reaction: '⚡ リアクションテスト',
@@ -19,19 +30,120 @@ export default function HistoryPage() {
 
   const currentUserScores = getCurrentUserScores();
 
-  // 各ゲームのランキングを生成
+  // 全ユーザーのスコアを統合して取得
+  useEffect(() => {
+    const loadAllScores = async () => {
+      try {
+        const allUserScores: AllUserScore[] = [];
+
+        // ゲストユーザーのスコアを取得
+        const { data: guestScores, error: guestError } = await supabase
+          .from('user_scores')
+          .select('user_name, game_type, score')
+          .not('score', 'is', null);
+
+        if (guestError) {
+          console.error('ゲストスコア取得エラー:', guestError);
+        } else {
+          guestScores?.forEach(score => {
+            allUserScores.push({
+              username: score.user_name,
+              gameType: score.game_type,
+              score: score.score,
+              isAuth: false
+            });
+          });
+        }
+
+        // 認証ユーザーのスコアを取得（JOINを使わずに別々に取得）
+        const { data: authScores, error: authError } = await supabase
+          .from('auth_user_scores')
+          .select('user_id, game_type, score')
+          .not('score', 'is', null);
+
+        if (authError) {
+          console.error('認証ユーザースコア取得エラー:', authError);
+        } else if (authScores && authScores.length > 0) {
+          // ユニークなuser_idを取得
+          const userIds = [...new Set(authScores.map(score => score.user_id))];
+          
+          // プロフィール情報を別途取得
+          const { data: profiles, error: profileError } = await supabase
+            .from('profiles')
+            .select('id, display_name')
+            .in('id', userIds);
+
+          if (profileError) {
+            console.error('プロフィール取得エラー:', profileError);
+          } else {
+            // プロフィール情報とスコアを結合
+            const profileMap = new Map(profiles?.map(p => [p.id, p.display_name]) || []);
+            
+            authScores.forEach(score => {
+              const displayName = profileMap.get(score.user_id);
+              if (displayName) {
+                allUserScores.push({
+                  username: displayName,
+                  gameType: score.game_type,
+                  score: score.score!,
+                  isAuth: true
+                });
+              }
+            });
+          }
+        }
+
+        setAllScores(allUserScores);
+      } catch (error) {
+        console.error('スコア統合取得エラー:', error);
+      }
+    };
+
+    loadAllScores();
+  }, []);
+
+  // 各ゲームの統合ランキングを生成
   const generateRankings = () => {
-    const rankings: { [gameId: string]: Array<{ username: string; score: number; rank: number }> } = {};
+    const rankings: { [gameId: string]: Array<{ username: string; score: number; rank: number; isAuth: boolean }> } = {};
     
     Object.keys(gameNames).forEach(gameId => {
-      const gameKey = gameId as keyof typeof gameNames;
-      const gameScores: Array<{ username: string; score: number }> = [];
+      const gameScores: Array<{ username: string; score: number; isAuth: boolean }> = [];
       
-      Object.entries(userScores).forEach(([username, scores]) => {
-        const score = scores[gameKey];
-        if (score !== null) {
-          gameScores.push({ username, score });
+      // 統合スコアからゲーム別に最高スコアを取得
+      const userBestScores: { [username: string]: { score: number; isAuth: boolean } } = {};
+      
+      allScores.forEach(scoreData => {
+        if (scoreData.gameType === gameId) {
+          const currentBest = userBestScores[scoreData.username];
+          
+          if (!currentBest) {
+            userBestScores[scoreData.username] = {
+              score: scoreData.score,
+              isAuth: scoreData.isAuth
+            };
+          } else {
+            // ベストスコアを更新するかどうか判定
+            const isBetter = gameId === 'reaction' 
+              ? scoreData.score < currentBest.score
+              : scoreData.score > currentBest.score;
+              
+            if (isBetter) {
+              userBestScores[scoreData.username] = {
+                score: scoreData.score,
+                isAuth: scoreData.isAuth
+              };
+            }
+          }
         }
+      });
+      
+      // ベストスコアを配列に変換
+      Object.entries(userBestScores).forEach(([username, data]) => {
+        gameScores.push({
+          username,
+          score: data.score,
+          isAuth: data.isAuth
+        });
       });
       
       // スコアでソート（リアクションテストは小さい方が良い、その他は大きい方が良い）
@@ -64,9 +176,12 @@ export default function HistoryPage() {
   const getUserRank = (gameId: string, score: number | null) => {
     if (score === null) return '-';
     const gameRanking = rankings[gameId];
-    const userRank = gameRanking.find(item => item.username === currentUser && item.score === score);
+    const currentUserName = isAuthenticated ? (profile?.display_name || 'ユーザー') : currentUser;
+    const userRank = gameRanking.find(item => item.username === currentUserName && item.score === score);
     return userRank ? `${userRank.rank}位` : '-';
   };
+
+  const currentUserName = isAuthenticated ? (profile?.display_name || 'ユーザー') : currentUser;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 py-8 px-4">
@@ -109,7 +224,12 @@ export default function HistoryPage() {
         <div className="text-center mb-6">
           <div className="bg-white rounded-lg shadow-lg px-4 py-2 inline-block">
             <span className="text-blue-600 text-sm">現在のユーザー: </span>
-            <span className="font-bold text-blue-800">{currentUser}</span>
+            <span className="font-bold text-blue-800">{currentUserName}</span>
+            {isAuthenticated && (
+              <span className="ml-2 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                認証済み
+              </span>
+            )}
           </div>
         </div>
 
@@ -118,7 +238,7 @@ export default function HistoryPage() {
           <div className="space-y-6">
             <div className="bg-white rounded-lg shadow-lg p-6">
               <h2 className="text-2xl font-bold text-blue-800 mb-6 text-center">
-                👤 {currentUser} のスコア
+                👤 {currentUserName} のスコア
               </h2>
               
               {!hasPersonalScores ? (
@@ -170,7 +290,7 @@ export default function HistoryPage() {
                         const score = currentUserScores[gameId as keyof typeof gameNames];
                         if (score === null) return false;
                         const userRank = rankings[gameId]?.find(item => 
-                          item.username === currentUser && item.score === score
+                          item.username === currentUserName && item.score === score
                         );
                         return userRank && userRank.rank <= 3;
                       }).length}
@@ -184,7 +304,7 @@ export default function HistoryPage() {
                         const score = currentUserScores[gameId as keyof typeof gameNames];
                         if (score === null) return false;
                         const userRank = rankings[gameId]?.find(item => 
-                          item.username === currentUser && item.score === score
+                          item.username === currentUserName && item.score === score
                         );
                         return userRank && userRank.rank === 1;
                       }).length}
@@ -214,7 +334,7 @@ export default function HistoryPage() {
                   ) : (
                     <div className="space-y-3">
                       {gameRanking.slice(0, 10).map((item, index) => {
-                        const isCurrentUser = item.username === currentUser;
+                        const isCurrentUser = item.username === currentUserName;
                         const rankColor = index === 0 ? 'text-yellow-600' : 
                                         index === 1 ? 'text-gray-500' : 
                                         index === 2 ? 'text-orange-600' : 'text-blue-600';
@@ -235,9 +355,16 @@ export default function HistoryPage() {
                               <div className={`font-bold text-lg ${rankColor}`}>
                                 {rankEmoji} {item.rank}位
                               </div>
-                              <div className={`font-medium ${isCurrentUser ? 'text-blue-800' : 'text-gray-800'}`}>
-                                {item.username}
-                                {isCurrentUser && <span className="text-blue-600 text-sm ml-2">(あなた)</span>}
+                              <div className="flex items-center space-x-2">
+                                <div className={`font-medium ${isCurrentUser ? 'text-blue-800' : 'text-gray-800'}`}>
+                                  {item.username}
+                                  {isCurrentUser && <span className="text-blue-600 text-sm ml-2">(あなた)</span>}
+                                </div>
+                                {item.isAuth && (
+                                  <span className="px-1.5 py-0.5 bg-green-100 text-green-600 text-xs rounded-full">
+                                    認証
+                                  </span>
+                                )}
                               </div>
                             </div>
                             <div className={`font-bold text-lg ${isCurrentUser ? 'text-blue-800' : 'text-gray-700'}`}>
@@ -269,6 +396,8 @@ export default function HistoryPage() {
             <li>• ランキングタブで各ゲームの上位プレイヤーを見ることができます</li>
             <li>• より良いスコアを出すとランキングが更新されます</li>
             <li>• リアクションテストは時間が短いほど高順位です</li>
+            <li>• 認証ユーザーとゲストユーザーの統合ランキングです</li>
+            <li>• 認証済みのユーザーには「認証」バッジが表示されます</li>
           </ul>
         </div>
       </div>
