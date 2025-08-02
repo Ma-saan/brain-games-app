@@ -13,7 +13,7 @@ import { GAME_CARDS } from '@/data/games';
 export default function Home() {
   const [username, setUsername] = useState('');
   const { currentUser, setCurrentUser, getBestScore, isReady } = useGame();
-  const { isAuthenticated, isFirstTimeUser, loading: authLoading, getDisplayName } = useAuth();
+  const { isAuthenticated, isFirstTimeUser, loading: authLoading, getDisplayName, signInWithGoogle } = useAuth();
 
   // 初期化中はローディング表示
   if (!isReady || authLoading) {
@@ -62,6 +62,14 @@ export default function Home() {
     if (e.key === 'Enter') {
       console.log('⌨️ Enterキーが押されました');
       handleSetUser();
+    }
+  };
+
+  const handleQuickLogin = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error('ログインエラー:', error);
     }
   };
 
@@ -150,9 +158,12 @@ export default function Home() {
               <div className="text-green-800">
                 <span className="font-bold">👤 {displayUserName} (ゲスト)</span>
                 <p className="text-sm text-gray-600 mt-1">
-                  <AuthButton variant="link" className="text-blue-600 hover:text-blue-800 underline">
+                  <button 
+                    onClick={handleQuickLogin}
+                    className="text-blue-600 hover:text-blue-800 underline"
+                  >
                     Googleでログイン
-                  </AuthButton>
+                  </button>
                   するとスコアが永続保存されます
                 </p>
               </div>
