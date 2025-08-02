@@ -15,7 +15,7 @@ interface AllUserScore {
 
 export default function HistoryPage() {
   const { userScores, currentUser, getCurrentUserScores, isAuthenticated } = useGame();
-  const { user, profile } = useAuth();
+  const { user, profile, getDisplayName } = useAuth();
   const [activeTab, setActiveTab] = useState<'personal' | 'rankings'>('personal');
   const [allScores, setAllScores] = useState<AllUserScore[]>([]);
   
@@ -67,7 +67,7 @@ export default function HistoryPage() {
           // ユニークなuser_idを取得
           const userIds = [...new Set(authScores.map(score => score.user_id))];
           
-          // プロフィール情報を別途取得
+          // プロフィール情報とauth.usersの情報を取得
           const { data: profiles, error: profileError } = await supabase
             .from('profiles')
             .select('id, display_name')
@@ -75,22 +75,45 @@ export default function HistoryPage() {
 
           if (profileError) {
             console.error('プロフィール取得エラー:', profileError);
-          } else {
-            // プロフィール情報とスコアを結合
-            const profileMap = new Map(profiles?.map(p => [p.id, p.display_name]) || []);
-            
-            authScores.forEach(score => {
-              const displayName = profileMap.get(score.user_id);
-              if (displayName) {
-                allUserScores.push({
-                  username: displayName,
-                  gameType: score.game_type,
-                  score: score.score!,
-                  isAuth: true
-                });
-              }
-            });
           }
+
+          // auth.usersのuser_metadataも取得
+          const { data: authUsers, error: authUsersError } = await supabase.auth.admin.listUsers();
+          
+          if (authUsersError) {
+            console.error('認証ユーザー取得エラー:', authUsersError);
+          }
+
+          // プロフィール情報とスコアを結合
+          const profileMap = new Map(profiles?.map(p => [p.id, p.display_name]) || []);
+          const authUserMap = new Map(authUsers?.users?.map(u => [u.id, u]) || []);
+          
+          authScores.forEach(score => {
+            let displayName = profileMap.get(score.user_id);
+            
+            // プロフィール名がない場合、Googleアカウント名を使用
+            if (!displayName) {
+              const authUser = authUserMap.get(score.user_id);
+              if (authUser?.user_metadata?.full_name) {
+                displayName = authUser.user_metadata.full_name;
+              } else if (authUser?.user_metadata?.name) {
+                displayName = authUser.user_metadata.name;
+              } else if (authUser?.email) {
+                displayName = authUser.email.split('@')[0];
+              } else {
+                displayName = 'ユーザー';
+              }
+            }
+            
+            if (displayName) {
+              allUserScores.push({
+                username: displayName,
+                gameType: score.game_type,
+                score: score.score!,
+                isAuth: true
+              });
+            }
+          });
         }
 
         setAllScores(allUserScores);
@@ -176,12 +199,14 @@ export default function HistoryPage() {
   const getUserRank = (gameId: string, score: number | null) => {
     if (score === null) return '-';
     const gameRanking = rankings[gameId];
-    const currentUserName = isAuthenticated ? (profile?.display_name || 'ユーザー') : currentUser;
+    // 修正：getDisplayName()を使用して適切な表示名を取得
+    const currentUserName = isAuthenticated ? getDisplayName() : currentUser;
     const userRank = gameRanking.find(item => item.username === currentUserName && item.score === score);
     return userRank ? `${userRank.rank}位` : '-';
   };
 
-  const currentUserName = isAuthenticated ? (profile?.display_name || 'ユーザー') : currentUser;
+  // 修正：getDisplayName()を使用して適切な表示名を取得
+  const currentUserName = isAuthenticated ? getDisplayName() : currentUser;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 py-8 px-4">
@@ -398,6 +423,7 @@ export default function HistoryPage() {
             <li>• リアクションテストは時間が短いほど高順位です</li>
             <li>• 認証ユーザーとゲストユーザーの統合ランキングです</li>
             <li>• 認証済みのユーザーには「認証」バッジが表示されます</li>
+            <li>• Google認証でログインすると、設定した名前またはGoogleアカウント名が表示されます</li>
           </ul>
         </div>
       </div>
