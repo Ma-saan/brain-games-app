@@ -55,32 +55,36 @@ export default function HistoryPage() {
           });
         }
 
-        // 認証ユーザーのスコアを取得（プロフィール名で表示）
-        const { data: authScores, error: authError } = await supabase
-          .from('auth_user_scores as aus')
+        // 認証ユーザーのスコアを取得（プロフィール情報と結合）
+        const { data: authScoresWithProfiles, error: authError } = await supabase
+          .from('auth_user_scores')
           .select(`
             game_type,
             score,
-            profiles!inner(display_name)
+            user_id,
+            profiles!auth_user_scores_user_id_fkey(display_name)
           `)
           .not('score', 'is', null);
 
         if (authError) {
           console.error('認証ユーザースコア取得エラー:', authError);
-        } else {
-          authScores?.forEach((score: any) => {
-            const displayName = score.profiles?.display_name || 'ユーザー';
+        } else if (authScoresWithProfiles) {
+          authScoresWithProfiles.forEach((scoreData: any) => {
+            // プロフィールからdisplay_nameを取得、ない場合は'認証ユーザー'
+            const displayName = scoreData.profiles?.display_name || '認証ユーザー';
+            
             allUserScores.push({
               username: displayName,
-              gameType: score.game_type,
-              score: score.score!,
+              gameType: scoreData.game_type,
+              score: scoreData.score,
               isAuth: true
             });
           });
         }
 
-        // 現在のユーザーが認証済みでプロフィールがない場合、自分のスコアを追加
-        if (isAuthenticated && user && !profile) {
+        // 現在のユーザーが認証済みで、自分のスコアがまだ追加されていない場合
+        if (isAuthenticated && user) {
+          const myDisplayName = getDisplayName();
           const { data: myAuthScores, error: myAuthError } = await supabase
             .from('auth_user_scores')
             .select('game_type, score')
@@ -88,14 +92,22 @@ export default function HistoryPage() {
             .not('score', 'is', null);
 
           if (!myAuthError && myAuthScores) {
-            const myDisplayName = getDisplayName();
+            // 既に同じ名前のスコアがないか確認
             myAuthScores.forEach(score => {
-              allUserScores.push({
-                username: myDisplayName,
-                gameType: score.game_type,
-                score: score.score!,
-                isAuth: true
-              });
+              const existingScore = allUserScores.find(s => 
+                s.username === myDisplayName && 
+                s.gameType === score.game_type && 
+                s.isAuth === true
+              );
+              
+              if (!existingScore) {
+                allUserScores.push({
+                  username: myDisplayName,
+                  gameType: score.game_type,
+                  score: score.score!,
+                  isAuth: true
+                });
+              }
             });
           }
         }
@@ -183,13 +195,11 @@ export default function HistoryPage() {
   const getUserRank = (gameId: string, score: number | null) => {
     if (score === null) return '-';
     const gameRanking = rankings[gameId];
-    // 修正：getDisplayName()を使用して適切な表示名を取得
     const currentUserName = isAuthenticated ? getDisplayName() : currentUser;
     const userRank = gameRanking.find(item => item.username === currentUserName && item.score === score);
     return userRank ? `${userRank.rank}位` : '-';
   };
 
-  // 修正：getDisplayName()を使用して適切な表示名を取得
   const currentUserName = isAuthenticated ? getDisplayName() : currentUser;
 
   return (
