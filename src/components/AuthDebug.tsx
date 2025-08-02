@@ -45,7 +45,9 @@ export default function AuthDebug() {
         }
       })
     } catch (error) {
-      setDebugInfo({ error: error.message })
+      // TypeScriptエラー修正：型安全なエラーハンドリング
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      setDebugInfo({ error: errorMessage })
     }
   }
 
@@ -72,7 +74,8 @@ export default function AuthDebug() {
       }
     } catch (err) {
       console.error('❌ 予期しないエラー:', err)
-      alert(`予期しないエラー: ${err.message}`)
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
+      alert(`予期しないエラー: ${errorMessage}`)
     }
   }
 
@@ -114,7 +117,7 @@ export default function AuthDebug() {
                 <div>
                   <strong>Supabase Redirect URLs:</strong>
                   <ul className="ml-4 mt-1">
-                    {debugInfo.expectedConfig.supabaseRedirectUrls.map((url, i) => (
+                    {debugInfo.expectedConfig.supabaseRedirectUrls.map((url: string, i: number) => (
                       <li key={i}>
                         <code className="bg-yellow-100 px-1 rounded">{url}</code>
                       </li>
