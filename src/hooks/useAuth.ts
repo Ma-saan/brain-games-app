@@ -109,6 +109,36 @@ export const useAuth = () => {
     }
   }
 
+  // 表示名を取得（優先順位: プロフィール設定名 > Googleアカウント名 > メールアドレス）
+  const getDisplayName = (): string => {
+    if (!state.isAuthenticated || !state.user) {
+      return 'ゲスト'
+    }
+
+    // 1. プロフィールで設定された名前を優先
+    if (state.profile?.display_name) {
+      return state.profile.display_name
+    }
+
+    // 2. Googleアカウントのフルネーム
+    if (state.user.user_metadata?.full_name) {
+      return state.user.user_metadata.full_name
+    }
+
+    // 3. Googleアカウントの名前
+    if (state.user.user_metadata?.name) {
+      return state.user.user_metadata.name
+    }
+
+    // 4. メールアドレスの@より前の部分
+    if (state.user.email) {
+      return state.user.email.split('@')[0]
+    }
+
+    // 5. フォールバック
+    return 'ユーザー'
+  }
+
   // Google認証でログイン
   const signInWithGoogle = async () => {
     try {
@@ -216,6 +246,7 @@ export const useAuth = () => {
   return {
     ...state,
     isFirstTimeUser,
+    getDisplayName,
     signInWithGoogle,
     signOut,
     createProfile,
