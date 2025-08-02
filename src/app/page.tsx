@@ -13,7 +13,7 @@ import { GAME_CARDS } from '@/data/games';
 export default function Home() {
   const [username, setUsername] = useState('');
   const { currentUser, setCurrentUser, getBestScore, isReady } = useGame();
-  const { isAuthenticated, isFirstTimeUser, loading: authLoading } = useAuth();
+  const { isAuthenticated, isFirstTimeUser, loading: authLoading, getDisplayName } = useAuth();
 
   // 初期化中はローディング表示
   if (!isReady || authLoading) {
@@ -65,7 +65,10 @@ export default function Home() {
     }
   };
 
-  console.log('🏠 Home画面レンダリング - 現在のユーザー:', currentUser);
+  // 表示用のユーザー名を取得
+  const displayUserName = isAuthenticated ? getDisplayName() : currentUser;
+
+  console.log('🏠 Home画面レンダリング - 現在のユーザー:', displayUserName);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 py-8 px-4">
@@ -129,20 +132,28 @@ export default function Home() {
             </Link>
           </div>
           
-          {/* ユーザー情報表示 */}
+          {/* ユーザー情報表示 - 修正版 */}
           <div id="current-user" className="text-center mt-4">
             {isAuthenticated ? (
               <div className="text-green-800">
-                <span className="font-bold">認証ユーザーとしてログイン中</span>
+                <div className="flex items-center justify-center gap-2">
+                  <span className="font-bold">🔐 {displayUserName}</span>
+                  <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                    認証済み
+                  </span>
+                </div>
                 <p className="text-sm text-gray-600 mt-1">
-                  スコアが自動保存されます
+                  スコアが自動保存され、デバイス間で同期されます
                 </p>
               </div>
             ) : (
               <div className="text-green-800">
-                <span className="font-bold">現在のユーザー (ゲスト): {currentUser}</span>
+                <span className="font-bold">👤 {displayUserName} (ゲスト)</span>
                 <p className="text-sm text-gray-600 mt-1">
-                  ログインするとスコアが永続保存されます
+                  <AuthButton variant="link" className="text-blue-600 hover:text-blue-800 underline">
+                    Googleでログイン
+                  </AuthButton>
+                  するとスコアが永続保存されます
                 </p>
               </div>
             )}
