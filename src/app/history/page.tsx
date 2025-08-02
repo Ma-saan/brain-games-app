@@ -55,65 +55,49 @@ export default function HistoryPage() {
           });
         }
 
-        // 認証ユーザーのスコアを取得（JOINを使わずに別々に取得）
+        // 認証ユーザーのスコアを取得（プロフィール名で表示）
         const { data: authScores, error: authError } = await supabase
-          .from('auth_user_scores')
-          .select('user_id, game_type, score')
+          .from('auth_user_scores as aus')
+          .select(`
+            game_type,
+            score,
+            profiles!inner(display_name)
+          `)
           .not('score', 'is', null);
 
         if (authError) {
           console.error('認証ユーザースコア取得エラー:', authError);
-        } else if (authScores && authScores.length > 0) {
-          // ユニークなuser_idを取得
-          const userIds = [...new Set(authScores.map(score => score.user_id))];
-          
-          // プロフィール情報とauth.usersの情報を取得
-          const { data: profiles, error: profileError } = await supabase
-            .from('profiles')
-            .select('id, display_name')
-            .in('id', userIds);
+        } else {
+          authScores?.forEach((score: any) => {
+            const displayName = score.profiles?.display_name || 'ユーザー';
+            allUserScores.push({
+              username: displayName,
+              gameType: score.game_type,
+              score: score.score!,
+              isAuth: true
+            });
+          });
+        }
 
-          if (profileError) {
-            console.error('プロフィール取得エラー:', profileError);
-          }
+        // 現在のユーザーが認証済みでプロフィールがない場合、自分のスコアを追加
+        if (isAuthenticated && user && !profile) {
+          const { data: myAuthScores, error: myAuthError } = await supabase
+            .from('auth_user_scores')
+            .select('game_type, score')
+            .eq('user_id', user.id)
+            .not('score', 'is', null);
 
-          // auth.usersのuser_metadataも取得
-          const { data: authUsers, error: authUsersError } = await supabase.auth.admin.listUsers();
-          
-          if (authUsersError) {
-            console.error('認証ユーザー取得エラー:', authUsersError);
-          }
-
-          // プロフィール情報とスコアを結合
-          const profileMap = new Map(profiles?.map(p => [p.id, p.display_name]) || []);
-          const authUserMap = new Map(authUsers?.users?.map(u => [u.id, u]) || []);
-          
-          authScores.forEach(score => {
-            let displayName = profileMap.get(score.user_id);
-            
-            // プロフィール名がない場合、Googleアカウント名を使用
-            if (!displayName) {
-              const authUser = authUserMap.get(score.user_id);
-              if (authUser?.user_metadata?.full_name) {
-                displayName = authUser.user_metadata.full_name;
-              } else if (authUser?.user_metadata?.name) {
-                displayName = authUser.user_metadata.name;
-              } else if (authUser?.email) {
-                displayName = authUser.email.split('@')[0];
-              } else {
-                displayName = 'ユーザー';
-              }
-            }
-            
-            if (displayName) {
+          if (!myAuthError && myAuthScores) {
+            const myDisplayName = getDisplayName();
+            myAuthScores.forEach(score => {
               allUserScores.push({
-                username: displayName,
+                username: myDisplayName,
                 gameType: score.game_type,
                 score: score.score!,
                 isAuth: true
               });
-            }
-          });
+            });
+          }
         }
 
         setAllScores(allUserScores);
@@ -123,7 +107,7 @@ export default function HistoryPage() {
     };
 
     loadAllScores();
-  }, []);
+  }, [isAuthenticated, user, profile, getDisplayName]);
 
   // 各ゲームの統合ランキングを生成
   const generateRankings = () => {
