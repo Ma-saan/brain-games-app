@@ -28,7 +28,19 @@ export const useAuth = () => {
 
         if (session?.user) {
           console.log('🔐 useAuth: セッション検出、プロフィール取得中...')
-          const profile = await fetchProfile(session.user.id)
+          // プロフィール取得は3秒でタイムアウトし、nullで続行
+          let profile = null
+          try {
+            profile = await Promise.race([
+              fetchProfile(session.user.id),
+              new Promise<null>((resolve) => setTimeout(() => {
+                console.log('⏱️ fetchProfileタイムアウト(3秒)、nullで続行')
+                resolve(null)
+              }, 3000))
+            ])
+          } catch (error) {
+            console.error('⚠️ fetchProfile失敗、nullで続行:', error)
+          }
           console.log('🔐 useAuth: loading=false, isAuthenticated=true に設定')
           setState({
             user: session.user,
@@ -69,7 +81,19 @@ export const useAuth = () => {
 
         if (session?.user) {
           console.log('🔐 useAuth: イベント処理 - プロフィール取得中...')
-          const profile = await fetchProfile(session.user.id)
+          // プロフィール取得は3秒でタイムアウトし、nullで続行
+          let profile = null
+          try {
+            profile = await Promise.race([
+              fetchProfile(session.user.id),
+              new Promise<null>((resolve) => setTimeout(() => {
+                console.log('⏱️ fetchProfileタイムアウト(3秒)、nullで続行')
+                resolve(null)
+              }, 3000))
+            ])
+          } catch (error) {
+            console.error('⚠️ fetchProfile失敗、nullで続行:', error)
+          }
           console.log('🔐 useAuth: イベント処理 - loading=false, isAuthenticated=true に設定')
           setState({
             user: session.user,
