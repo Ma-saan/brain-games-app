@@ -23,10 +23,13 @@ export const useAuth = () => {
     // 初回の認証状態取得
     const getInitialAuth = async () => {
       try {
+        console.log('🔐 useAuth: getInitialAuth開始')
         const { data: { session } } = await supabase.auth.getSession()
-        
+
         if (session?.user) {
+          console.log('🔐 useAuth: セッション検出、プロフィール取得中...')
           const profile = await fetchProfile(session.user.id)
+          console.log('🔐 useAuth: loading=false, isAuthenticated=true に設定')
           setState({
             user: session.user,
             profile,
@@ -35,6 +38,7 @@ export const useAuth = () => {
             isAuthenticated: true
           })
         } else {
+          console.log('🔐 useAuth: セッションなし、loading=false に設定')
           setState({
             user: null,
             profile: null,
@@ -45,6 +49,7 @@ export const useAuth = () => {
         }
       } catch (error) {
         console.error('認証状態の取得に失敗:', error)
+        console.log('🔐 useAuth: エラー、loading=false に設定')
         setState({
           user: null,
           profile: null,
@@ -60,10 +65,12 @@ export const useAuth = () => {
     // 認証状態の変更を監視
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth event:', event, session)
-        
+        console.log('🔐 useAuth: Auth event:', event, 'session:', !!session)
+
         if (session?.user) {
+          console.log('🔐 useAuth: イベント処理 - プロフィール取得中...')
           const profile = await fetchProfile(session.user.id)
+          console.log('🔐 useAuth: イベント処理 - loading=false, isAuthenticated=true に設定')
           setState({
             user: session.user,
             profile,
@@ -72,6 +79,7 @@ export const useAuth = () => {
             isAuthenticated: true
           })
         } else {
+          console.log('🔐 useAuth: イベント処理 - loading=false, isAuthenticated=false に設定')
           setState({
             user: null,
             profile: null,

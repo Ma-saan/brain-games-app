@@ -137,6 +137,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    console.log('🔄 GameContext useEffect実行', {
+      authLoading,
+      isAuthenticated,
+      hasInitialized: hasInitialized.current,
+      userId: user?.id
+    });
+
     const initializeApp = async () => {
       // 既に初期化済みの場合は何もしない
       if (hasInitialized.current) {
@@ -146,7 +153,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
       // 認証状態の確認を待つ
       if (authLoading) {
-        console.log('⏳ 認証状態確認中...');
+        console.log('⏳ 認証状態確認中... authLoading =', authLoading);
         return;
       }
 
