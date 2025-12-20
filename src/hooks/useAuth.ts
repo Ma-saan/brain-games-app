@@ -99,6 +99,7 @@ export const useAuth = () => {
   // プロフィール情報を取得
   const fetchProfile = async (userId: string): Promise<Profile | null> => {
     try {
+      console.log('🔍 fetchProfile開始, userId:', userId)
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
@@ -106,13 +107,14 @@ export const useAuth = () => {
         .single()
 
       if (error) {
-        console.log('プロフィールが見つかりません:', error.message)
+        console.log('⚠️ プロフィールが見つかりません:', error.message)
         return null
       }
 
+      console.log('✅ fetchProfile完了, profile:', profile)
       return profile
     } catch (error) {
-      console.error('プロフィール取得エラー:', error)
+      console.error('❌ プロフィール取得エラー:', error)
       return null
     }
   }
