@@ -45,7 +45,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   // 認証ユーザーのスコアを読み込み
   const loadAuthUserScores = useCallback(async () => {
+    console.log('🔍 loadAuthUserScores開始, user.id:', user?.id);
+
     if (!user?.id) {
+      console.log('⚠️ user.idが未定義のため、認証ユーザースコア読み込みをスキップ');
       setAuthUserScores({
         reaction: null, memory: null, color: null,
         math: null, pattern: null, typing: null
@@ -54,6 +57,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
+      console.log('📡 Supabaseから認証ユーザースコアを取得中...');
       const { data, error } = await supabase
         .from('auth_user_scores')
         .select('game_type, score')
@@ -64,6 +68,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         console.error('❌ 認証ユーザーのスコア読み込みエラー:', error);
         return;
       }
+
+      console.log('📥 Supabaseから取得したデータ:', data);
 
       // ゲームタイプ別にベストスコアを取得
       const scores: GameScores = {
@@ -145,7 +151,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        console.log('🚀 アプリ初期化中...');
+        console.log('🚀 アプリ初期化中...', { isAuthenticated, userId: user?.id });
 
         // LocalStorageから設定を復元（クライアントサイドのみ）
         if (typeof window !== 'undefined' && !isAuthenticated) {
@@ -157,13 +163,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         }
 
         // スコアを読み込み
+        console.log('📊 loadAllScores呼び出し前');
         await loadAllScores();
+        console.log('📊 loadAllScores完了');
 
         // 認証ユーザーのスコアも読み込み
         if (isAuthenticated) {
+          console.log('🔐 認証ユーザーのため、loadAuthUserScores呼び出し');
           await loadAuthUserScores();
+          console.log('🔐 loadAuthUserScores完了');
+        } else {
+          console.log('👤 ゲストユーザーのため、loadAuthUserScoresスキップ');
         }
 
+        console.log('🎯 初期化フラグとisReadyを設定中...');
         hasInitialized.current = true;
         setIsReady(true);
         console.log('✅ アプリ初期化完了');
