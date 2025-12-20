@@ -167,7 +167,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     };
 
     initializeApp();
-  }, [authLoading, isAuthenticated, loadAllScores, loadAuthUserScores]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, isAuthenticated]);
 
   // 認証状態の変更を監視してスコアを再読み込み
   useEffect(() => {
