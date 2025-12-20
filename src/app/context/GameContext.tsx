@@ -424,7 +424,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const getCurrentUserScores = (): GameScores => {
     if (isAuthenticated) {
-      console.log('📊 認証ユーザーのスコア取得:', authUserScores);
       return authUserScores;
     } else {
       const scores = userScores[currentUser] || {
@@ -435,7 +434,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         pattern: null,
         typing: null
       };
-      console.log('📊 ゲストユーザーのスコア取得:', currentUser, scores);
       return scores;
     }
   };
