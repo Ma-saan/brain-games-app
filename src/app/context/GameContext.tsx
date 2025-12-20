@@ -129,44 +129,45 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const initializeApp = useCallback(async () => {
-    try {
-      console.log('🚀 アプリ初期化中...');
-      
+  useEffect(() => {
+    const initializeApp = async () => {
       // 認証状態の確認を待つ
       if (authLoading) {
         console.log('⏳ 認証状態確認中...');
+        setIsReady(false);
         return;
       }
-      
-      // LocalStorageから設定を復元（クライアントサイドのみ）
-      if (typeof window !== 'undefined' && !isAuthenticated) {
-        const savedUser = localStorage.getItem('currentUser');
-        if (savedUser) {
-          console.log('📱 LocalStorageからユーザー復元:', savedUser);
-          setCurrentUserState(savedUser);
-        }
-      }
-      
-      // スコアを読み込み
-      await loadAllScores();
-      
-      // 認証ユーザーのスコアも読み込み
-      if (isAuthenticated) {
-        await loadAuthUserScores();
-      }
-      
-      setIsReady(true);
-      console.log('✅ アプリ初期化完了');
-    } catch (error) {
-      console.error('❌ 初期化失敗:', error);
-      setIsReady(true); // エラーでも画面は表示
-    }
-  }, [loadAllScores, loadAuthUserScores, isAuthenticated, authLoading]);
 
-  useEffect(() => {
+      try {
+        console.log('🚀 アプリ初期化中...');
+
+        // LocalStorageから設定を復元（クライアントサイドのみ）
+        if (typeof window !== 'undefined' && !isAuthenticated) {
+          const savedUser = localStorage.getItem('currentUser');
+          if (savedUser) {
+            console.log('📱 LocalStorageからユーザー復元:', savedUser);
+            setCurrentUserState(savedUser);
+          }
+        }
+
+        // スコアを読み込み
+        await loadAllScores();
+
+        // 認証ユーザーのスコアも読み込み
+        if (isAuthenticated) {
+          await loadAuthUserScores();
+        }
+
+        setIsReady(true);
+        console.log('✅ アプリ初期化完了');
+      } catch (error) {
+        console.error('❌ 初期化失敗:', error);
+        setIsReady(true); // エラーでも画面は表示
+      }
+    };
+
     initializeApp();
-  }, [initializeApp]);
+  }, [authLoading, isAuthenticated, loadAllScores, loadAuthUserScores]);
 
   // 認証状態の変更を監視してスコアを再読み込み
   useEffect(() => {
