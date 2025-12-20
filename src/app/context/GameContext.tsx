@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, AuthUserScore } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -40,6 +40,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     math: null, pattern: null, typing: null
   });
   const [isReady, setIsReady] = useState(false);
+  const hasInitialized = useRef(false);
   const { user, profile, isAuthenticated, loading: authLoading } = useAuth();
 
   // 認証ユーザーのスコアを読み込み
@@ -131,19 +132,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const initializeApp = async () => {
-      // 認証状態の確認を待つ
-      if (authLoading) {
-        console.log('⏳ 認証状態確認中...');
-        // 初回のみisReadyをfalseにする（既に初期化済みの場合はスキップ）
-        if (!isReady) {
-          setIsReady(false);
-        }
+      // 既に初期化済みの場合は何もしない
+      if (hasInitialized.current) {
+        console.log('✅ 初期化済みのため、スキップ');
         return;
       }
 
-      // 既に初期化済みの場合はスキップ（ページ遷移時の再実行を防ぐ）
-      if (isReady) {
-        console.log('✅ 既に初期化済み');
+      // 認証状態の確認を待つ
+      if (authLoading) {
+        console.log('⏳ 認証状態確認中...');
         return;
       }
 
@@ -167,10 +164,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           await loadAuthUserScores();
         }
 
+        hasInitialized.current = true;
         setIsReady(true);
         console.log('✅ アプリ初期化完了');
       } catch (error) {
         console.error('❌ 初期化失敗:', error);
+        hasInitialized.current = true;
         setIsReady(true); // エラーでも画面は表示
       }
     };
