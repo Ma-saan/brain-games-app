@@ -134,7 +134,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       // 認証状態の確認を待つ
       if (authLoading) {
         console.log('⏳ 認証状態確認中...');
-        setIsReady(false);
+        // 初回のみisReadyをfalseにする（既に初期化済みの場合はスキップ）
+        if (!isReady) {
+          setIsReady(false);
+        }
+        return;
+      }
+
+      // 既に初期化済みの場合はスキップ（ページ遷移時の再実行を防ぐ）
+      if (isReady) {
+        console.log('✅ 既に初期化済み');
         return;
       }
 
