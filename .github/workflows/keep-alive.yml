@@ -1,0 +1,67 @@
+name: Keep Services Alive
+
+# 3日ごと（72時間）に実行 + 手動実行も可能
+on:
+  schedule:
+    # 毎週月曜・木曜の午前3時（UTC）に実行 = 日本時間 正午
+    - cron: '0 3 * * 1,4'
+  workflow_dispatch: # 手動実行を許可
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Keep Supabase Active
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          echo "📡 Supabaseにクエリを送信してアクティブ状態を維持..."
+
+          # profilesテーブルに簡単なクエリを送信（データは取得しない）
+          response=$(curl -s -w "\n%{http_code}" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            "${SUPABASE_URL}/rest/v1/profiles?select=count")
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n-1)
+
+          if [ "$http_code" -eq 200 ] || [ "$http_code" -eq 206 ]; then
+            echo "✅ Supabaseクエリ成功 (HTTP $http_code)"
+            echo "Response: $body"
+          else
+            echo "⚠️ Supabaseクエリ失敗 (HTTP $http_code)"
+            echo "Response: $body"
+            exit 1
+          fi
+
+      - name: Keep Vercel Deployment Active
+        env:
+          VERCEL_URL: ${{ secrets.VERCEL_URL }}
+        run: |
+          echo "🌐 Vercelデプロイメントにアクセス..."
+
+          # Vercel URLが設定されている場合のみアクセス
+          if [ -n "${VERCEL_URL}" ]; then
+            response=$(curl -s -w "\n%{http_code}" -L "${VERCEL_URL}")
+            http_code=$(echo "$response" | tail -n1)
+
+            if [ "$http_code" -eq 200 ]; then
+              echo "✅ Vercelアクセス成功 (HTTP $http_code)"
+            else
+              echo "⚠️ Vercelアクセス失敗 (HTTP $http_code)"
+              # Vercelの失敗は致命的エラーとしない（オプショナル）
+            fi
+          else
+            echo "ℹ️ VERCEL_URLが設定されていないためスキップ"
+          fi
+
+      - name: Summary
+        run: |
+          echo "🎉 Keep-Aliveジョブ完了"
+          echo "次回実行: 3日後"
