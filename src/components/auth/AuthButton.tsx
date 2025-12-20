@@ -58,9 +58,6 @@ export const AuthButton = () => {
             <p className="font-medium text-gray-900">
               {profile?.display_name || user.user_metadata?.full_name || 'ユーザー'}
             </p>
-            <p className="text-gray-500 text-xs">
-              {user.email}
-            </p>
           </div>
         </div>
 
