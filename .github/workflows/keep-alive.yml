@@ -22,21 +22,45 @@ jobs:
         run: |
           echo "📡 Supabaseにクエリを送信してアクティブ状態を維持..."
 
+          # 環境変数のチェック
+          if [ -z "${SUPABASE_URL}" ]; then
+            echo "❌ エラー: SUPABASE_URLが設定されていません"
+            echo "GitHub Settings > Secrets and variables > Actions で設定してください"
+            exit 1
+          fi
+
+          if [ -z "${SUPABASE_ANON_KEY}" ]; then
+            echo "❌ エラー: SUPABASE_ANON_KEYが設定されていません"
+            echo "GitHub Settings > Secrets and variables > Actions で設定してください"
+            exit 1
+          fi
+
+          echo "🔍 Supabase URL: ${SUPABASE_URL}"
+          echo "🔑 Anon Key: ${SUPABASE_ANON_KEY:0:20}... (マスク済み)"
+
           # profilesテーブルに簡単なクエリを送信（データは取得しない）
+          echo "📤 クエリ送信中..."
           response=$(curl -s -w "\n%{http_code}" \
             -H "apikey: ${SUPABASE_ANON_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
-            "${SUPABASE_URL}/rest/v1/profiles?select=count")
+            "${SUPABASE_URL}/rest/v1/profiles?select=count" || echo "CURL_FAILED")
+
+          if [ "$response" = "CURL_FAILED" ]; then
+            echo "❌ curlコマンドが失敗しました"
+            exit 1
+          fi
 
           http_code=$(echo "$response" | tail -n1)
           body=$(echo "$response" | head -n-1)
 
+          echo "📥 HTTPステータスコード: $http_code"
+          echo "📄 レスポンスボディ: $body"
+
           if [ "$http_code" -eq 200 ] || [ "$http_code" -eq 206 ]; then
             echo "✅ Supabaseクエリ成功 (HTTP $http_code)"
-            echo "Response: $body"
           else
             echo "⚠️ Supabaseクエリ失敗 (HTTP $http_code)"
-            echo "Response: $body"
+            echo "詳細: $body"
             exit 1
           fi
 
