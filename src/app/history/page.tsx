@@ -62,7 +62,7 @@ export default function HistoryPage() {
             game_type,
             score,
             user_id,
-            profiles!auth_user_scores_user_id_fkey(display_name)
+            profiles!auth_user_scores_user_id_profiles_fkey(display_name)
           `)
           .not('score', 'is', null);
 
