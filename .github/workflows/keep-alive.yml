@@ -38,58 +38,74 @@ jobs:
           echo "🔍 Supabase URL: ${SUPABASE_URL}"
           echo "🔑 Anon Key: ${SUPABASE_ANON_KEY:0:20}... (マスク済み)"
 
-          # 複数のテーブルに実際のデータ取得クエリを送信
-          echo "📤 クエリ1: profilesテーブル（実データ取得）..."
+          # 複数のテーブルにデータベースアクセスを実行
+          # RLSを考慮し、より単純なクエリで確実なアクティビティを生成
+
+          success_count=0
+
+          echo "📤 クエリ1: gamesテーブル（公開データ）..."
           response1=$(curl -s -w "\n%{http_code}" \
             -H "apikey: ${SUPABASE_ANON_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
-            "${SUPABASE_URL}/rest/v1/profiles?select=id,username&limit=5" || echo "CURL_FAILED")
+            "${SUPABASE_URL}/rest/v1/games?select=*&limit=1" || echo "CURL_FAILED")
 
-          if [ "$response1" = "CURL_FAILED" ]; then
-            echo "❌ profilesクエリ失敗"
-            exit 1
+          if [ "$response1" != "CURL_FAILED" ]; then
+            http_code1=$(echo "$response1" | tail -n1)
+            body1=$(echo "$response1" | head -n-1)
+            echo "📥 games HTTPステータス: $http_code1"
+            if [ "$http_code1" -eq 200 ] || [ "$http_code1" -eq 206 ]; then
+              echo "✅ gamesクエリ成功"
+              ((success_count++))
+            else
+              echo "⚠️ games詳細: $body1"
+            fi
           fi
 
-          http_code1=$(echo "$response1" | tail -n1)
-          echo "📥 profiles HTTPステータス: $http_code1"
-
-          if [ "$http_code1" -ne 200 ] && [ "$http_code1" -ne 206 ]; then
-            echo "⚠️ profilesクエリ失敗 (HTTP $http_code1)"
-            exit 1
-          fi
-          echo "✅ profilesクエリ成功"
-
-          # gamesテーブルにもクエリ
-          echo "📤 クエリ2: gamesテーブル（実データ取得）..."
+          # auth_user_scoresテーブル
+          echo "📤 クエリ2: auth_user_scoresテーブル..."
           response2=$(curl -s -w "\n%{http_code}" \
             -H "apikey: ${SUPABASE_ANON_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
-            "${SUPABASE_URL}/rest/v1/games?select=id,name&limit=5" || echo "CURL_FAILED")
+            "${SUPABASE_URL}/rest/v1/auth_user_scores?select=*&limit=1" || echo "CURL_FAILED")
 
           if [ "$response2" != "CURL_FAILED" ]; then
             http_code2=$(echo "$response2" | tail -n1)
-            echo "📥 games HTTPステータス: $http_code2"
+            body2=$(echo "$response2" | head -n-1)
+            echo "📥 auth_user_scores HTTPステータス: $http_code2"
             if [ "$http_code2" -eq 200 ] || [ "$http_code2" -eq 206 ]; then
-              echo "✅ gamesクエリ成功"
+              echo "✅ auth_user_scoresクエリ成功"
+              ((success_count++))
+            else
+              echo "⚠️ auth_user_scores詳細: $body2"
             fi
           fi
 
-          # auth_user_scoresテーブルにもクエリ
-          echo "📤 クエリ3: auth_user_scoresテーブル（実データ取得）..."
+          # profilesテーブル
+          echo "📤 クエリ3: profilesテーブル..."
           response3=$(curl -s -w "\n%{http_code}" \
             -H "apikey: ${SUPABASE_ANON_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
-            "${SUPABASE_URL}/rest/v1/auth_user_scores?select=id,score&limit=5" || echo "CURL_FAILED")
+            "${SUPABASE_URL}/rest/v1/profiles?select=*&limit=1" || echo "CURL_FAILED")
 
           if [ "$response3" != "CURL_FAILED" ]; then
             http_code3=$(echo "$response3" | tail -n1)
-            echo "📥 auth_user_scores HTTPステータス: $http_code3"
+            body3=$(echo "$response3" | head -n-1)
+            echo "📥 profiles HTTPステータス: $http_code3"
             if [ "$http_code3" -eq 200 ] || [ "$http_code3" -eq 206 ]; then
-              echo "✅ auth_user_scoresクエリ成功"
+              echo "✅ profilesクエリ成功"
+              ((success_count++))
+            else
+              echo "⚠️ profiles詳細: $body3"
             fi
           fi
 
-          echo "🎯 複数テーブルへのアクティビティ完了"
+          # 最低1つ成功していればOK
+          if [ $success_count -gt 0 ]; then
+            echo "🎯 データベースアクティビティ成功 ($success_count/3 テーブル)"
+          else
+            echo "❌ 全てのクエリが失敗しました"
+            exit 1
+          fi
 
       - name: Keep Vercel Deployment Active
         env:
