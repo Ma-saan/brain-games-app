@@ -1,10 +1,10 @@
 name: Keep Services Alive
 
-# 3日ごと（72時間）に実行 + 手動実行も可能
+# 毎日実行 + 手動実行も可能
 on:
   schedule:
-    # 毎週月曜・木曜の午前3時（UTC）に実行 = 日本時間 正午
-    - cron: '0 3 * * 1,4'
+    # 毎日午前3時（UTC）に実行 = 日本時間 正午
+    - cron: '0 3 * * *'
   workflow_dispatch: # 手動実行を許可
 
 jobs:
@@ -38,31 +38,58 @@ jobs:
           echo "🔍 Supabase URL: ${SUPABASE_URL}"
           echo "🔑 Anon Key: ${SUPABASE_ANON_KEY:0:20}... (マスク済み)"
 
-          # profilesテーブルに簡単なクエリを送信（データは取得しない）
-          echo "📤 クエリ送信中..."
-          response=$(curl -s -w "\n%{http_code}" \
+          # 複数のテーブルに実際のデータ取得クエリを送信
+          echo "📤 クエリ1: profilesテーブル（実データ取得）..."
+          response1=$(curl -s -w "\n%{http_code}" \
             -H "apikey: ${SUPABASE_ANON_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
-            "${SUPABASE_URL}/rest/v1/profiles?select=count" || echo "CURL_FAILED")
+            "${SUPABASE_URL}/rest/v1/profiles?select=id,username&limit=5" || echo "CURL_FAILED")
 
-          if [ "$response" = "CURL_FAILED" ]; then
-            echo "❌ curlコマンドが失敗しました"
+          if [ "$response1" = "CURL_FAILED" ]; then
+            echo "❌ profilesクエリ失敗"
             exit 1
           fi
 
-          http_code=$(echo "$response" | tail -n1)
-          body=$(echo "$response" | head -n-1)
+          http_code1=$(echo "$response1" | tail -n1)
+          echo "📥 profiles HTTPステータス: $http_code1"
 
-          echo "📥 HTTPステータスコード: $http_code"
-          echo "📄 レスポンスボディ: $body"
-
-          if [ "$http_code" -eq 200 ] || [ "$http_code" -eq 206 ]; then
-            echo "✅ Supabaseクエリ成功 (HTTP $http_code)"
-          else
-            echo "⚠️ Supabaseクエリ失敗 (HTTP $http_code)"
-            echo "詳細: $body"
+          if [ "$http_code1" -ne 200 ] && [ "$http_code1" -ne 206 ]; then
+            echo "⚠️ profilesクエリ失敗 (HTTP $http_code1)"
             exit 1
           fi
+          echo "✅ profilesクエリ成功"
+
+          # gamesテーブルにもクエリ
+          echo "📤 クエリ2: gamesテーブル（実データ取得）..."
+          response2=$(curl -s -w "\n%{http_code}" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            "${SUPABASE_URL}/rest/v1/games?select=id,name&limit=5" || echo "CURL_FAILED")
+
+          if [ "$response2" != "CURL_FAILED" ]; then
+            http_code2=$(echo "$response2" | tail -n1)
+            echo "📥 games HTTPステータス: $http_code2"
+            if [ "$http_code2" -eq 200 ] || [ "$http_code2" -eq 206 ]; then
+              echo "✅ gamesクエリ成功"
+            fi
+          fi
+
+          # auth_user_scoresテーブルにもクエリ
+          echo "📤 クエリ3: auth_user_scoresテーブル（実データ取得）..."
+          response3=$(curl -s -w "\n%{http_code}" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            "${SUPABASE_URL}/rest/v1/auth_user_scores?select=id,score&limit=5" || echo "CURL_FAILED")
+
+          if [ "$response3" != "CURL_FAILED" ]; then
+            http_code3=$(echo "$response3" | tail -n1)
+            echo "📥 auth_user_scores HTTPステータス: $http_code3"
+            if [ "$http_code3" -eq 200 ] || [ "$http_code3" -eq 206 ]; then
+              echo "✅ auth_user_scoresクエリ成功"
+            fi
+          fi
+
+          echo "🎯 複数テーブルへのアクティビティ完了"
 
       - name: Keep Vercel Deployment Active
         env:
@@ -88,4 +115,4 @@ jobs:
       - name: Summary
         run: |
           echo "🎉 Keep-Aliveジョブ完了"
-          echo "次回実行: 3日後"
+          echo "次回実行: 24時間後（毎日）"
