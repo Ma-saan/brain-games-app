@@ -39,69 +39,56 @@ jobs:
           echo "🔑 Anon Key: ${SUPABASE_ANON_KEY:0:20}... (マスク済み)"
 
           # 複数のテーブルにデータベースアクセスを実行
-          # RLSを考慮し、より単純なクエリで確実なアクティビティを生成
+          # 存在するテーブルに対して確実なアクティビティを生成
 
           success_count=0
 
-          echo "📤 クエリ1: gamesテーブル（公開データ）..."
+          # auth_user_scoresテーブル
+          echo "📤 クエリ1: auth_user_scoresテーブル..."
           response1=$(curl -s -w "\n%{http_code}" \
             -H "apikey: ${SUPABASE_ANON_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
-            "${SUPABASE_URL}/rest/v1/games?select=*&limit=1" || echo "CURL_FAILED")
+            "${SUPABASE_URL}/rest/v1/auth_user_scores?select=*&limit=1" 2>&1 || echo "CURL_FAILED")
 
           if [ "$response1" != "CURL_FAILED" ]; then
             http_code1=$(echo "$response1" | tail -n1)
             body1=$(echo "$response1" | head -n-1)
-            echo "📥 games HTTPステータス: $http_code1"
-            if [ "$http_code1" -eq 200 ] || [ "$http_code1" -eq 206 ]; then
-              echo "✅ gamesクエリ成功"
-              ((success_count++))
+            echo "📥 auth_user_scores HTTPステータス: $http_code1"
+            if [ "$http_code1" = "200" ] || [ "$http_code1" = "206" ]; then
+              echo "✅ auth_user_scoresクエリ成功"
+              success_count=$((success_count + 1))
             else
-              echo "⚠️ games詳細: $body1"
+              echo "⚠️ auth_user_scores詳細: $body1"
             fi
+          else
+            echo "⚠️ auth_user_scores curlエラー"
           fi
 
-          # auth_user_scoresテーブル
-          echo "📤 クエリ2: auth_user_scoresテーブル..."
+          # profilesテーブル
+          echo "📤 クエリ2: profilesテーブル..."
           response2=$(curl -s -w "\n%{http_code}" \
             -H "apikey: ${SUPABASE_ANON_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
-            "${SUPABASE_URL}/rest/v1/auth_user_scores?select=*&limit=1" || echo "CURL_FAILED")
+            "${SUPABASE_URL}/rest/v1/profiles?select=*&limit=1" 2>&1 || echo "CURL_FAILED")
 
           if [ "$response2" != "CURL_FAILED" ]; then
             http_code2=$(echo "$response2" | tail -n1)
             body2=$(echo "$response2" | head -n-1)
-            echo "📥 auth_user_scores HTTPステータス: $http_code2"
-            if [ "$http_code2" -eq 200 ] || [ "$http_code2" -eq 206 ]; then
-              echo "✅ auth_user_scoresクエリ成功"
-              ((success_count++))
-            else
-              echo "⚠️ auth_user_scores詳細: $body2"
-            fi
-          fi
-
-          # profilesテーブル
-          echo "📤 クエリ3: profilesテーブル..."
-          response3=$(curl -s -w "\n%{http_code}" \
-            -H "apikey: ${SUPABASE_ANON_KEY}" \
-            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
-            "${SUPABASE_URL}/rest/v1/profiles?select=*&limit=1" || echo "CURL_FAILED")
-
-          if [ "$response3" != "CURL_FAILED" ]; then
-            http_code3=$(echo "$response3" | tail -n1)
-            body3=$(echo "$response3" | head -n-1)
-            echo "📥 profiles HTTPステータス: $http_code3"
-            if [ "$http_code3" -eq 200 ] || [ "$http_code3" -eq 206 ]; then
+            echo "📥 profiles HTTPステータス: $http_code2"
+            if [ "$http_code2" = "200" ] || [ "$http_code2" = "206" ]; then
               echo "✅ profilesクエリ成功"
-              ((success_count++))
+              success_count=$((success_count + 1))
             else
-              echo "⚠️ profiles詳細: $body3"
+              echo "⚠️ profiles詳細: $body2"
             fi
+          else
+            echo "⚠️ profiles curlエラー"
           fi
 
           # 最低1つ成功していればOK
-          if [ $success_count -gt 0 ]; then
-            echo "🎯 データベースアクティビティ成功 ($success_count/3 テーブル)"
+          echo "📊 成功したクエリ数: $success_count"
+          if [ "$success_count" -gt 0 ]; then
+            echo "🎯 データベースアクティビティ成功 ($success_count/2 テーブル)"
           else
             echo "❌ 全てのクエリが失敗しました"
             exit 1
